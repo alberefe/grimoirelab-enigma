@@ -1,0 +1,13 @@
+# Ignore environment and credentials
+.env
+credential-management/credential_items/temporal_things_to_keep.json
+
+# Ignore Python cache and virtual environments
+__pycache__/
+*.pyc
+.venv/
+.idea/
+
+# Ignore .py files that are not complete or relevant for the moment
+credential-management/hashicorp_manager.py
+credential-management/ejecutor_bw_manager.py

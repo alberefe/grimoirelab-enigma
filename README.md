@@ -1,3 +1,12 @@
+Current dependencies: 
+
+- dotenv
+- json
+- os
+
+(in the future I'm planning to manage all dependencies with poetry, like the rest of grimoirelab)
+
+
 Instructions to test the class bitwarden_manager.py
 
 1. Create .env file and add the credentials used to access your vault. (or the vault where the credentials are stored)
@@ -20,7 +29,7 @@ Instructions to test the class bitwarden_manager.py
 3. Inside bw_manager_tester, uncomment the corresponding line according to the secret we want to retrieve. So if you
     stored github secret, then uncomment the line: 
     
-    # bw_manager.get_secret("github")
+    bw_manager.get_secret("github")
 
 4. The credentials are stored in environment variables printed in the terminal, and we could then use them in a script 
     in order to access the service. 

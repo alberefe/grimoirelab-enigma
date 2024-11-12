@@ -10,6 +10,5 @@ __pycache__/
 
 # Ignore .py files that are not complete or relevant for the moment
 credential-management/hashicorp_manager.py
-credential-management/ejecutor_bw_manager.py
 credential-management/ejecutor_hashicorp_manager.py
 config_files/vault_config

@@ -5,7 +5,6 @@ I'm using a json file to store the credentials, so I can access them from the sc
 time
 """
 import os
-import subprocess
 from dotenv import load_dotenv
 from bitwarden_manager import BitwardenManager
 

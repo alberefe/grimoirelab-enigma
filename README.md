@@ -32,6 +32,17 @@ Instructions to test the class bitwarden_manager.py
     bw_manager.get_secret("github")
 
 4. The credentials are stored in environment variables printed in the terminal, and we could then use them in a script 
-    in order to access the service. 
+    in order to access the service. That is, the get_secret() function assigns each credential found for that service
+    an environment variable, based on the service + type of credential. 
+
+    For example:  if I recover a bugzilla username and bugzilla password, the env vars will be called respectively:
+        - BUGZILLA_USERNAME
+        - BUGZILLA_PASSWORD
+
+    Other examples would be: 
+        - GITHUB_API_TOKEN
+        - GERRIT_SSH_KEY
+
+    With this naming I'm trying to make it easy for Perceval or other parts of Grimoirelab to use the correct credential.
 
     

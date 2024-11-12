@@ -6,6 +6,7 @@ from secrets_manager import SecretsManager
 
 class BitwardenManager(SecretsManager):
 
+    # TODO: login maybe should be executed with the initialization of the class and hidden from the user
     def __init__(self):
         """
         Loads credential types mapping from a JSON file to determine expected types of secrets
@@ -15,11 +16,11 @@ class BitwardenManager(SecretsManager):
         self.session_key = None
 
         # load the credential types mapping from the json file
-        credentials_type_file_path = "./credential_items/credential_types.json"
+        credentials_type_file_path = "../config_files/credential_types.json"
         with open(credentials_type_file_path, "r") as file:
             self.service_mapping = json.load(file)
 
-    def login(self, bw_email: str, bw_password: str) -> str:
+    def _login(self, bw_email: str, bw_password: str) -> str:
         """
         Logs into Bitwarden and obtains a session key.
 
@@ -220,7 +221,3 @@ class BitwardenManager(SecretsManager):
     def store_secret(self, name: str, secret_type: str, username: str = None, password: str = None,
                      private_key: str = None):
         pass
-
-    def logout(self):
-        subprocess.run(["/snap/bin/bw", "logout"])
-        self.session_key = None

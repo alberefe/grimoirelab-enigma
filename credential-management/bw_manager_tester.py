@@ -21,7 +21,7 @@ if not bw_email or not bw_password:
 
 # Create a BitwardenManager object using the secrets manager interface
 bw_manager = BitwardenManager()
-bw_manager.login(bw_email, bw_password)  # Log into Bitwarden and store the session key in the object manager
+bw_manager._login(bw_email, bw_password)  # Log into Bitwarden and store the session key in the object manager
 
 
 """

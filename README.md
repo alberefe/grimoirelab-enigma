@@ -3,9 +3,11 @@ Current dependencies:
 - dotenv
 - json
 - os
+- hvac
 
 (in the future I'm planning to manage all dependencies with poetry, like the rest of grimoirelab)
 
+# Bitwarden_manager.py
 
 Instructions to test the class bitwarden_manager.py
 
@@ -46,3 +48,57 @@ Instructions to test the class bitwarden_manager.py
     With this naming I'm trying to make it easy for Perceval or other parts of Grimoirelab to use the correct credential.
 
     
+# hashicorp_vault_manager.py
+
+
+1. Install hashicorp vault in the system. The instructions are found here depending on your OS:
+   
+    https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-install
+
+2. Start the server. 
+
+    ```
+    $ vault server -dev-tls
+    ```
+
+    The terminal will show some data that we should store in the next steps:
+
+3. Save the following data in *vault_config.json*
+
+   - vault_url
+   - vault_unseal_key
+
+4. Set the following env vars in *.env* file
+
+   - VAULT_ADDR
+   - VAULT_TOKEN
+   - VAULT_CACERT
+
+    The vault token in the dev environment is the root_token, but in production it could be any token that 
+    allows the user to unseal the vault and retrieve secrets from it. 
+
+    In development mode the vault starts unsealed and stays like that. 
+
+5. Set environment variables in our system to store our testing credentials
+
+    ```
+    $ export VAULT_ADDR=....
+    $ export VAULT_CACERT=....
+    ```
+6. Store a username:password pair for bugzilla service.
+
+    ```
+    $ vault kv put secret/bugzilla username=bugzilla_user password=bugzilla_password
+    ```
+    
+    This stores in the path "secret/bugzilla" the two elements, username and password. We can do this with any other
+    type of credential. I'll be using the same naming convention for the elements stored. 
+
+    We can check that the secret has been stored with
+   
+    ```
+    $ vault kv get /secret/bugzilla/
+    ```
+   
+7. Run the 
+ 

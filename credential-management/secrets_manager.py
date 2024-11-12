@@ -2,10 +2,6 @@ from abc import ABC, abstractmethod
 
 class SecretsManager(ABC):
 
-    @abstractmethod
-    def login(self, username: str, password: str) -> str:
-        """Log into the secrets manager and establish a session if needed."""
-        pass
 
     @abstractmethod
     def get_secret(self, service_name:str) -> bool:
@@ -15,9 +11,4 @@ class SecretsManager(ABC):
     @abstractmethod
     def store_secret(self, key: str, value: str):
         """Store a secret by key."""
-        pass
-
-    @abstractmethod
-    def logout(self):
-        """Log out and clean up the session."""
         pass

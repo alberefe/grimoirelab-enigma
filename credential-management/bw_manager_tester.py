@@ -40,7 +40,6 @@ bw_manager.get_secret("bugzilla")
 # Fetch and use StackExchange credentials
 # bw_manager.get_secret("stackexchange")
 
-bw_manager.logout()  # Log out when done
 
 print("\nBUGZILLA USERNAME = " + os.getenv("BUGZILLA_USERNAME"))
 print("BUGZILLA PASSWORD = " + os.getenv("BUGZILLA_PASSWORD"))

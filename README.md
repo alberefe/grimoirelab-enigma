@@ -7,7 +7,7 @@ Current dependencies:
 
 (in the future I'm planning to manage all dependencies with poetry, like the rest of grimoirelab)
 
-# Bitwarden_manager.py
+# bw_manager.py
 
 Instructions to test the class bitwarden_manager.py
 
@@ -48,7 +48,7 @@ Instructions to test the class bitwarden_manager.py
     With this naming I'm trying to make it easy for Perceval or other parts of Grimoirelab to use the correct credential.
 
     
-# hashicorp_vault_manager.py
+# hc_manager.py
 
 
 1. Install hashicorp vault in the system. The instructions are found here depending on your OS:

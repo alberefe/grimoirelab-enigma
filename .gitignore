@@ -1,6 +1,6 @@
 # Ignore environment and credentials
 .env
-credential-management/credential_items/temporal_things_to_keep.json
+config_files/hashicorp_vault_config.json
 
 # Ignore Python cache and virtual environments
 __pycache__/
@@ -9,6 +9,3 @@ __pycache__/
 .idea/
 
 # Ignore .py files that are not complete or relevant for the moment
-credential-management/hashicorp_manager.py
-credential-management/ejecutor_hashicorp_manager.py
-config_files/vault_config

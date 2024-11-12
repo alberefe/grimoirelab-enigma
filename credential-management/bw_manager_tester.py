@@ -6,7 +6,7 @@ time
 """
 import os
 from dotenv import load_dotenv
-from bitwarden_manager import BitwardenManager
+from bw_manager import BitwardenManager
 
 # Load environment variables from the .env file
 load_dotenv()

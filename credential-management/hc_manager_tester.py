@@ -5,7 +5,7 @@ from hc_manager import HashicorpManager
 
 
 # Load the vault configuration
-with open("/home/noname/Documents/University/PFG/grimoirelab-dev/sources/grimoirelab-credential-management/config_files/hashicorp_vault_config.json", "r") as file:
+with open("../config_files/hashicorp_vault_config.json", "r") as file:
     vault_config = json.load(file)
 
 # Get the vault url

@@ -1,4 +1,4 @@
 {
   "vault_url": "https://localhost:8200",
-  "vault_unseal_key": "yI+h9wL0Dip+fCFlIJmglMmKSymWdgWKPIW/GpXD6CE="
+  "vault_unseal_key": "fCFlIJmglMmKSymWdgWKPIW/GpXD6CE="
 }

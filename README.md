@@ -63,8 +63,8 @@ Instructions to test the class bitwarden_manager.py
 
     The terminal will show some data that we should store in the next steps:
 
-3. Save the following data in *vault_config.json*
-
+3. Save the following data in *../config_files/hashicorp_vault_config.json*
+    
    - vault_url
    - vault_unseal_key
 
@@ -100,5 +100,4 @@ Instructions to test the class bitwarden_manager.py
     $ vault kv get /secret/bugzilla/
     ```
    
-7. Run the 
- 
+7. Run hc_manager_tester.py

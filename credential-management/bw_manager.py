@@ -214,10 +214,3 @@ class BitwardenManager(SecretsManager):
         except Exception as e:
             print(f"Failed to retrieve secrets from service: '{service_name}' from Bitwarden: {e}")
             return False
-
-    # TODO: I don't know even if I need this method.
-    #   the user could just store the secrets from the interface of the secrets manager and then
-    #   access them from perceval (for example)
-    def store_secret(self, name: str, secret_type: str, username: str = None, password: str = None,
-                     private_key: str = None):
-        pass

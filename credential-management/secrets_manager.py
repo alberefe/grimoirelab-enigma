@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 
 class SecretsManager(ABC):
 
-    #TODO: unify the signatures of all children and this class
     @abstractmethod
     def login(self, username: str, password: str) -> str:
         """Log into the secrets manager and establish a session if needed."""

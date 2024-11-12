@@ -44,10 +44,12 @@ class BitwardenManager(SecretsManager):
             text=True
         )
 
+
         # if the status command was successful
         if status_result.returncode == 0:
             # Parse the JSON output from `bw status`
             status = json.loads(status_result.stdout)
+
             if status.get("userEmail") == bw_email:
                 # If the vault is locked, unlock it
                 if status.get("status") == "locked":
@@ -71,20 +73,20 @@ class BitwardenManager(SecretsManager):
                 if not self.session_key:
                     raise Exception("Failed to obtain session key during login")
 
-        else:
-            # Login to Bitwarden if not already logged in
-            result = subprocess.run(
-                ["/snap/bin/bw", "login", bw_email, bw_password, "--raw"],
-                capture_output=True,
-                text=True
-            )
+            else:
+                # Login to Bitwarden if not already logged in
+                result = subprocess.run(
+                    ["/snap/bin/bw", "login", bw_email, bw_password, "--raw"],
+                    capture_output=True,
+                    text=True
+                )
 
-            # Check if the login was successful
-            if result.returncode != 0:
-                raise Exception("Failed to log into Bitwarden: " + result.stderr)
+                    # Check if the login was successful
+                if result.returncode != 0:
+                    raise Exception("Failed to log into Bitwarden: " + result.stderr)
 
-            # Set session key
-            self.session_key = result.stdout.strip()
+                # Set session key
+                self.session_key = result.stdout.strip()
 
         # Sync the vault
         if self.session_key:

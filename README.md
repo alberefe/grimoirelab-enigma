@@ -20,7 +20,7 @@ Instructions to test the class bitwarden_manager.py
 3. Inside bw_manager_tester, uncomment the corresponding line according to the secret we want to retrieve. So if you
     stored github secret, then uncomment the line: 
     
-    # bw_manager.get_secret("github")
+    bw_manager.get_secret("github")
 
 4. The credentials are stored in environment variables printed in the terminal, and we could then use them in a script 
     in order to access the service. 

@@ -45,3 +45,6 @@ bw_manager.logout()  # Log out when done
 
 print("\nBUGZILLA USERNAME = " + os.getenv("BUGZILLA_USERNAME"))
 print("BUGZILLA PASSWORD = " + os.getenv("BUGZILLA_PASSWORD"))
+
+backend_user = os.getenv("BUGZILLA_USERNAME")
+backend_password = os.getenv("BUGZILLA_PASSWORD")

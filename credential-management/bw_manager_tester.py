@@ -20,8 +20,7 @@ if not bw_email or not bw_password:
     raise ValueError("Please set the BW_EMAIL and BW_PASSWORD environment variables in the .env file")
 
 # Create a BitwardenManager object using the secrets manager interface
-bw_manager = BitwardenManager()
-bw_manager._login(bw_email, bw_password)  # Log into Bitwarden and store the session key in the object manager
+bw_manager = BitwardenManager(bw_email, bw_password)
 
 
 """
@@ -41,8 +40,8 @@ bw_manager.get_secret("bugzilla")
 # bw_manager.get_secret("stackexchange")
 
 
-print("\nBUGZILLA USERNAME = " + os.getenv("BUGZILLA_USERNAME"))
-print("BUGZILLA PASSWORD = " + os.getenv("BUGZILLA_PASSWORD"))
+# print("\nBUGZILLA USERNAME = " + os.getenv("BUGZILLA_USERNAME"))
+# print("BUGZILLA PASSWORD = " + os.getenv("BUGZILLA_PASSWORD"))
 
 backend_user = os.getenv("BUGZILLA_USERNAME")
 backend_password = os.getenv("BUGZILLA_PASSWORD")

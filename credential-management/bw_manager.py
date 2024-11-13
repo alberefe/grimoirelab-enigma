@@ -1,13 +1,14 @@
 import json
 import subprocess
 import os
+from pprint import pprint
+from utils import set_environment_variables
 from secrets_manager import SecretsManager
 
 
 class BitwardenManager(SecretsManager):
 
-    # TODO: login maybe should be executed with the initialization of the class and hidden from the user
-    def __init__(self):
+    def __init__(self, email:str, password:str):
         """
         Loads credential types mapping from a JSON file to determine expected types of secrets
         for each service in Bitwarden.
@@ -19,6 +20,9 @@ class BitwardenManager(SecretsManager):
         credentials_type_file_path = "../config_files/credential_types.json"
         with open(credentials_type_file_path, "r") as file:
             self.service_mapping = json.load(file)
+
+        self._login(email, password)
+
 
     def _login(self, bw_email: str, bw_password: str) -> str:
         """
@@ -94,9 +98,9 @@ class BitwardenManager(SecretsManager):
             subprocess.run(["/snap/bin/bw", "sync", "--session", self.session_key], check=True)
             return self.session_key
         else:
-            print("Session key not found")
+            print("Session key not found cause could not log in")
 
-    def _fetch_secrets(self, service_name):
+    def _retrieve_credentials(self, service_name):
         """
         Retrieves a secret from a particular service from the Bitwarden vault.
 
@@ -119,80 +123,38 @@ class BitwardenManager(SecretsManager):
         if result.returncode != 0:
             raise Exception(f"Failed to retrieve secret '{service_name}' from Bitwarden: {result.stderr}")
 
-        return json.loads(result.stdout)
+        retrieved_secrets = json.loads(result.stdout)
+        return retrieved_secrets
 
-    def _extract_field_value(self, secret, field):
+    def _format_credentials(self, credentials:dict) -> dict:
         """
-        Extracts the value for a specific field from the Bitwarden secret.
-
-        Searches various sections of the secret, including 'login', 'fields', and 'notes',
-        to find the value for the specified field.
+        Formats the credentials, so I can pass them to the utils.set_environment_variables
 
         Args:
-            secret (dict): The Bitwarden secret object.
-            field (str): The field name to retrieve.
+            credentials (dict): A dictionary containing the unformatted credentials.
 
         Returns:
-            str or None: The value of the specified field if found, otherwise None.
+            dict: A dictionary containing the formatted credentials.
         """
-        # Check for field in 'login' section (e.g., username, password)
-        if "login" in secret and field in secret["login"]:
-            print("Login:", secret["login"])
-            return secret["login"].get(field)
+        # en el dict viene login{user, pass}, notes y los custom.
+        credential_types = ["api_key", "api_token", "api_username", "ssh_key", "bot_name", "bot_token", "app_key"]
+        formatted_credentials = {}
 
-        # Check custom fields under 'fields' section
-        if "fields" in secret:
-            for custom_field in secret["fields"]:
-                if custom_field["name"].lower() == field.lower():
-                    print("Custom Field:", custom_field)
-                    return custom_field["value"]
+        # get the basic credentials
+        username = credentials.get("login", {}).get("username")
+        if username is not None:
+            formatted_credentials["username"] = username
 
-        # Check if there is something in 'notes' and return it (e.g. ssh_key)
-        if field == "notes" and "notes" in secret:
-            print("Notes:", secret["notes"])
-            return secret.get("notes")
+        password = credentials.get("login", {}).get("password")
+        if username is not None:
+            formatted_credentials["password"] = password
 
-        # Field not found in any section
-        # print("Nothing found for field:", field)
-        return None
+        # checks for fields that could be potential credentials
+        for field in credentials:
+            if field in credential_types:
+                formatted_credentials[field] = credentials[field]
 
-    # TODO: do i need the expected fields or could I just get the secret and set the environment variables to
-    #  the field names that are present?
-    def _set_environment_variables(self, service_name):
-        """
-        Sets environment variables based on credentials stored in Bitwarden for a given service.
-
-        Fetches the secret for the specified service and sets environment variables based
-        on the retrieved fields, using the `service_mapping` configuration.
-
-        Args:
-            service_name (str): The name of the service to retrieve credentials for.
-
-        Raises:
-            ValueError: If no credential structure is found for the service in the configuration.
-        """
-
-        # Fetch the secret from Bitwarden
-        secret = self._fetch_secrets(service_name)
-        print("Fetched Secret:", secret)
-
-        # Retrieve the expected fields for this service from the configuration mapping
-        expected_fields = self.service_mapping.get(service_name)
-
-        if not expected_fields:
-            raise ValueError(f"No credential structure found for service '{service_name}' in service mapping.")
-
-        # Iterate over each expected field and attempt to retrieve its value from the secret
-        for field in expected_fields:
-            env_var_name = f"{service_name.upper()}_{field.upper()}"
-            value = self._extract_field_value(secret, field)
-
-            # Set environment variable if the value was found
-            if value:
-                os.environ[env_var_name] = value
-                print(f"Environment variable '{env_var_name}' set to value: '{value}'")
-            else:
-                print(f"Warning: Field '{field}' not found for service '{service_name}'")
+        return formatted_credentials
 
     def get_secret(self, service_name: str):
         """
@@ -209,7 +171,9 @@ class BitwardenManager(SecretsManager):
                   False otherwise.
         """
         try:
-            self._set_environment_variables(service_name)
+            unformatted_credentials = self._retrieve_credentials(service_name)
+            formatted_credentials = self._format_credentials(unformatted_credentials)
+            set_environment_variables(service_name, formatted_credentials)
             return True
         except Exception as e:
             print(f"Failed to retrieve secrets from service: '{service_name}' from Bitwarden: {e}")

@@ -156,7 +156,7 @@ class BitwardenManager(SecretsManager):
 
         return formatted_credentials
 
-    def get_secret(self, service_name: str):
+    def get_secret(self, service_name: str) -> bool:
         """
         Retrieves a secret by name from the Bitwarden vault and sets environment variables for it.
 

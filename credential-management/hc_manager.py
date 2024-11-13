@@ -52,10 +52,15 @@ class HashicorpManager(SecretsManager):
         return secret
 
     def get_secret(self, service_name: str) -> bool:
-        # Retrieves the credentials from vault
-        credentials = self._retrieve_credentials(service_name)
-        # Formats the credentials so we can assign their values to env vars
-        # If there's no need to assign the env vars, I could just return this dict
-        formatted_credentials = self._format_credentials(credentials)
-        # Sets env vars
-        return utils.set_environment_variables(service_name, formatted_credentials)
+        try:
+            # Retrieves the credentials from vault
+            credentials = self._retrieve_credentials(service_name)
+            # Formats the credentials so we can assign their values to env vars
+            # If there's no need to assign the env vars, I could just return this dict
+            formatted_credentials = self._format_credentials(credentials)
+            # Sets env vars
+            utils.set_environment_variables(service_name, formatted_credentials)
+            return True
+        except Exception as e:
+            print("Could not retrieve credentials from vault")
+            return False

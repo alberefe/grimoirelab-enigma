@@ -101,3 +101,15 @@ Instructions to test the class bitwarden_manager.py
     ```
    
 7. Run hc_manager_tester.py
+
+
+# aws_manager.py
+
+1. You need an aws account, and a user that can access the secrets manager. So first steps:
+
+   - Store secrets using the format:
+     - Name of the secret must be the name of the service (i.e. bugzilla)
+     - Inside, name the fields as the type of credential (i.e. api_key)
+
+2. In security credentials, assign an access key to the user that's going to access the vault. This key, for now will
+    go to the aws_config.json file that should be stored in ../config_files/

@@ -113,3 +113,6 @@ Instructions to test the class bitwarden_manager.py
 
 2. In security credentials, assign an access key to the user that's going to access the vault. This key, for now will
     go to the aws_config.json file that should be stored in ../config_files/
+
+3. On the aws_manager_tester.py file, make sure the credentials are retrieved from the correct file and run the program.
+    It should assign the env vars correctly. 

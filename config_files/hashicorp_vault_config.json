@@ -1,4 +1,0 @@
-{
-  "vault_url": "https://localhost:8200",
-  "vault_unseal_key": "a_key_here"
-}

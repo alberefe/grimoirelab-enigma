@@ -19,14 +19,16 @@
 #     Alberto Ferrer Sánchez (alberefe@gmail.com)
 #
 
-
+from enigma import Enigma
 import json
+from botocore.exceptions import EndpointConnectionError
+from botocore.exceptions import SSLError
+from botocore.exceptions import ClientError
 from utils import set_environment_variables
 import boto3
-from secrets_manager import SecretsManager
 
 
-class AwsManager(SecretsManager):
+class AwsManager(Enigma):
     # TODO: the region should be in the .aws config file that the user should have. This makes everything easier to
     #   deal with. Next step make it work with that configuration?
     def __init__(self, aws_access_key_id=None, aws_secret_access_key=None, aws_session_token=None):
@@ -40,10 +42,19 @@ class AwsManager(SecretsManager):
         """
 
         # Creates a client using the credentials
-        self.client = boto3.client('secretsmanager', aws_access_key_id=aws_access_key_id,
-                                   aws_secret_access_key=aws_secret_access_key,
-                                   aws_session_token=aws_session_token,
-                                   region_name='eu-west-3')
+        try:
+            self.client = boto3.client('secretsmanager', aws_access_key_id=aws_access_key_id,
+                                       aws_secret_access_key=aws_secret_access_key,
+                                       aws_session_token=aws_session_token,
+                                       region_name='eu-west-3')
+        except EndpointConnectionError as e:
+            print("e connecting to the endpoing: " + e)
+        except SSLError as e:
+            print("e with the SSL connection: " + e)
+        except ClientError as e:
+            print("Client e:" + e)
+        except Exception as e:
+            print(e)
 
     def _retrieve_and_format_credentials(self, service_name: str) -> dict:
         """
@@ -54,11 +65,20 @@ class AwsManager(SecretsManager):
         Returns:
             formatted_credentials (dict): Dictionary containing the credentials retrieved and formatted as a dict
         """
-        secret_value_response = self.client.get_secret_value(
-            SecretId=service_name
-        )
-        formatted_credentials = json.loads(secret_value_response['SecretString'])
-        return formatted_credentials
+        try:
+            secret_value_response = self.client.get_secret_value(
+                SecretId=service_name
+            )
+            formatted_credentials = json.loads(secret_value_response['SecretString'])
+            return formatted_credentials
+        except ClientError as e:
+            print("There was a problem accessing the secret:" + e)
+        except self.client.exceptions.ResourceNotFoundException as e:
+            print("Resource not found: " + e)
+        except self.client.exceptions.InternalServiceError as e:
+            print("Internal server e: " + e)
+        except Exception as e:
+            print(e)
 
     def get_secret(self, service_name: str) -> bool:
         """
@@ -71,8 +91,10 @@ class AwsManager(SecretsManager):
         """
         try:
             credentials = self._retrieve_and_format_credentials(service_name)
+            # TODO: this should return the secret.
             set_environment_variables(service_name, credentials)
             return True
+        # this catches only generic exceptions because they are raised lower
         except Exception as e:
             print("Failed to retrieve the secrets. ")
             print(e)

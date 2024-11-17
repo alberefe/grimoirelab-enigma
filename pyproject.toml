@@ -6,8 +6,24 @@ authors = ["Alberto Ferrer Sánchez <alberefe@gmail.com>"]
 license = "GPL-3.0+"
 readme = "README.md"
 
+repository = "https://github.com/alberefe/grimoirelab-enigma"
+
+keywords = [
+    "development",
+    "secrets-management",
+    "grimoirelab"
+]
+
+
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
+hvac = "^2.3.0"
+boto3 = "^1.35.63"
+grimoirelab-toolkit = { version = ">=0.3", allow-prereleases = true }
+
+[tool.poetry.dev-dependencies]
+flake8 = "^7.1.1"
+coverage = "^6.2"
 
 
 [build-system]

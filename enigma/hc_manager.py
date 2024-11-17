@@ -20,11 +20,12 @@
 #
 
 import hvac
-from secrets_manager import SecretsManager
+import hvac.exceptions
 import utils
+from enigma import Enigma
 
 
-class HashicorpManager(SecretsManager):
+class HashicorpManager(Enigma):
 
     def __init__(self, vault_url, token, certificate):
         """
@@ -36,7 +37,12 @@ class HashicorpManager(SecretsManager):
             token (str): The access token.
             certificate (str): The tls certificate.
         """
-        self.client = hvac.Client(url=vault_url, token=token, verify=certificate)
+        try:
+            self.client = hvac.Client(url=vault_url, token=token, verify=certificate)
+        except Exception as e:
+            print("An error ocurred initializing the client:" + e)
+            # this is dealt with in the get_secret function
+            raise e
 
         if self.client.sys.is_initialized():
             print("Client is initialized")
@@ -82,6 +88,26 @@ class HashicorpManager(SecretsManager):
             # Sets env vars
             utils.set_environment_variables(service_name, formatted_credentials)
             return True
+        except hvac.exceptions.Forbidden as e:
+            print("There was an error accessing the vault")
+            print(e)
+        except hvac.exceptions.InternalServerError as e:
+            print("internal server error: " + e)
+        except hvac.exceptions.InvalidPath as e:
+            print("invalid path: " + e)
+        except hvac.exceptions.InvalidRequest as e:
+            print("invalid request: " + e)
+        except hvac.exceptions.RateLimitExceeded as e:
+            print("Rate limit Exceeded" + e)
+        except hvac.exceptions.Unauthorized:
+            print("Unauthorized" + e)
+        except hvac.exceptions.UnsupportedOperation as e:
+            print("Unsupported operation" + e)
+        except hvac.exceptions.VaultError as e:
+            print("Vault error: " + e)
+        except hvac.exceptions.VaultDown as e:
+            print("Vault down: " + e)
         except Exception as e:
             print("Could not retrieve credentials from vault")
+            print(e)
             return False

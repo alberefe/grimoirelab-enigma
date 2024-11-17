@@ -22,10 +22,10 @@
 import json
 import subprocess
 import utils
-import secrets_manager
+from enigma import Enigma
 
 
-class BitwardenManager(secrets_manager.SecretsManager):
+class BitwardenManager(Enigma):
 
     def __init__(self, email: str, password: str):
         """
@@ -35,12 +35,18 @@ class BitwardenManager(secrets_manager.SecretsManager):
         # Session key of the bw session
         self.session_key = None
 
-        # load the credential types mapping from the json file
-        credentials_type_file_path = "../config_files/credential_types.json"
-        with open(credentials_type_file_path, "r") as file:
-            self.service_mapping = json.load(file)
+        try:
+            # load the credential types mapping from the json file and logs in
+            credentials_type_file_path = "../config_files/credential_types.json"
+            with open(credentials_type_file_path, "r", encoding="utf-8") as file:
+                self.service_mapping = json.load(file)
 
-        self._login(email, password)
+            self._login(email, password)
+        except FileNotFoundError:
+            print("File not found")
+            raise FileNotFoundError
+        except Exception as e:
+            print(e)
 
     def _login(self, bw_email: str, bw_password: str) -> str:
         """
@@ -59,63 +65,65 @@ class BitwardenManager(secrets_manager.SecretsManager):
         Raises:
             Exception: If unlocking or logging into Bitwarden fails.
         """
+        try:
+            # Check Bitwarden login status
+            status_result = subprocess.run(
+                ["/snap/bin/bw", "status"],
+                capture_output=True,
+                text=True
+            )
 
-        # Check Bitwarden login status
-        status_result = subprocess.run(
-            ["/snap/bin/bw", "status"],
-            capture_output=True,
-            text=True
-        )
+            # if the status command was successful
+            if status_result.returncode == 0:
+                # Parse the JSON output from `bw status`
+                status = json.loads(status_result.stdout)
 
-        # if the status command was successful
-        if status_result.returncode == 0:
-            # Parse the JSON output from `bw status`
-            status = json.loads(status_result.stdout)
+                if status.get("userEmail") == bw_email:
+                    # If the vault is locked, unlock it
+                    if status.get("status") == "locked":
+                        unlock_result = subprocess.run(
+                            ["/snap/bin/bw", "unlock", bw_password, "--raw"],
+                            capture_output=True,
+                            text=True
+                        )
 
-            if status.get("userEmail") == bw_email:
-                # If the vault is locked, unlock it
-                if status.get("status") == "locked":
-                    unlock_result = subprocess.run(
-                        ["/snap/bin/bw", "unlock", bw_password, "--raw"],
+                        if unlock_result.returncode != 0:
+                            raise Exception("Failed to unlock Bitwarden: " + unlock_result.stderr)
+
+                        # Set the session key
+                        self.session_key = unlock_result.stdout.strip()
+
+                    elif status.get("status") == "unlocked":
+                        # If already unlocked, retrieve the current session key
+                        self.session_key = status.get("sessionKey")
+
+                    # Ensure session key is set
+                    if not self.session_key:
+                        raise Exception("Failed to obtain session key during login")
+
+                else:
+                    # Login to Bitwarden if not already logged in
+                    result = subprocess.run(
+                        ["/snap/bin/bw", "login", bw_email, bw_password, "--raw"],
                         capture_output=True,
                         text=True
                     )
 
-                    if unlock_result.returncode != 0:
-                        raise Exception("Failed to unlock Bitwarden: " + unlock_result.stderr)
+                    # Check if the login was successful
+                    if result.returncode != 0:
+                        raise Exception("Failed to log into Bitwarden: " + result.stderr)
 
-                    # Set the session key
-                    self.session_key = unlock_result.stdout.strip()
+                    # Set session key
+                    self.session_key = result.stdout.strip()
 
-                elif status.get("status") == "unlocked":
-                    # If already unlocked, retrieve the current session key
-                    self.session_key = status.get("sessionKey")
-
-                # Ensure session key is set
-                if not self.session_key:
-                    raise Exception("Failed to obtain session key during login")
-
+            # Sync the vault
+            if self.session_key:
+                subprocess.run(["/snap/bin/bw", "sync", "--session", self.session_key], check=True)
+                return self.session_key
             else:
-                # Login to Bitwarden if not already logged in
-                result = subprocess.run(
-                    ["/snap/bin/bw", "login", bw_email, bw_password, "--raw"],
-                    capture_output=True,
-                    text=True
-                )
-
-                # Check if the login was successful
-                if result.returncode != 0:
-                    raise Exception("Failed to log into Bitwarden: " + result.stderr)
-
-                # Set session key
-                self.session_key = result.stdout.strip()
-
-        # Sync the vault
-        if self.session_key:
-            subprocess.run(["/snap/bin/bw", "sync", "--session", self.session_key], check=True)
-            return self.session_key
-        else:
-            print("Session key not found cause could not log in")
+                print("Session key not found cause could not log in")
+        except Exception as e:
+            print("There was a problem login in:" + e)
 
     def _retrieve_credentials(self, service_name):
         """
@@ -130,17 +138,20 @@ class BitwardenManager(secrets_manager.SecretsManager):
         Raises:
             Exception: If retrieval of the secret fails.
         """
+        try:
+            result = subprocess.run(
+                ["/snap/bin/bw", "get", "item", service_name, "--session", self.session_key],
+                capture_output=True,
+                text=True
+            )
 
-        result = subprocess.run(
-            ["/snap/bin/bw", "get", "item", service_name, "--session", self.session_key],
-            capture_output=True,
-            text=True
-        )
+            if result.returncode != 0:
+                raise Exception(f"Failed to retrieve secret '{service_name}' from Bitwarden: {result.stderr}")
 
-        if result.returncode != 0:
-            raise Exception(f"Failed to retrieve secret '{service_name}' from Bitwarden: {result.stderr}")
+            retrieved_secrets = json.loads(result.stdout)
+        except Exception as e:
+            print("There was an error retrieving the secret: " + e)
 
-        retrieved_secrets = json.loads(result.stdout)
         return retrieved_secrets
 
     def _format_credentials(self, credentials: dict) -> dict:
@@ -156,20 +167,22 @@ class BitwardenManager(secrets_manager.SecretsManager):
         # en el dict viene login{user, pass}, notes y los custom.
         credential_types = ["api_key", "api_token", "api_username", "ssh_key", "bot_name", "bot_token", "app_key"]
         formatted_credentials = {}
+        try:
+            # get the basic credentials
+            username = credentials.get("login", {}).get("username")
+            if username is not None:
+                formatted_credentials["username"] = username
 
-        # get the basic credentials
-        username = credentials.get("login", {}).get("username")
-        if username is not None:
-            formatted_credentials["username"] = username
+            password = credentials.get("login", {}).get("password")
+            if username is not None:
+                formatted_credentials["password"] = password
 
-        password = credentials.get("login", {}).get("password")
-        if username is not None:
-            formatted_credentials["password"] = password
-
-        # checks for fields that could be potential credentials
-        for field in credentials:
-            if field in credential_types:
-                formatted_credentials[field] = credentials[field]
+            # checks for fields that could be potential credentials
+            for field in credentials:
+                if field in credential_types:
+                    formatted_credentials[field] = credentials[field]
+        except Exception as e:
+            print("There was an error formatting credentials: " + e)
 
         return formatted_credentials
 

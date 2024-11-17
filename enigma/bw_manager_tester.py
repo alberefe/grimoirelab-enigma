@@ -22,7 +22,6 @@ if not bw_email or not bw_password:
 # Create a BitwardenManager object using the secrets manager interface
 bw_manager = BitwardenManager(bw_email, bw_password)
 
-
 """
 Uncomment the service that wants to be tested.
 If there are no secrets, none would be assigned.

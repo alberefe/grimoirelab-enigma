@@ -1,3 +1,25 @@
+# -*- coding: utf-8 -*-
+#
+#
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+# Author:
+#     Alberto Ferrer Sánchez (alberefe@gmail.com)
+#
+
+
 import json
 from utils import set_environment_variables
 import boto3
@@ -5,7 +27,6 @@ from secrets_manager import SecretsManager
 
 
 class AwsManager(SecretsManager):
-
     # TODO: the region should be in the .aws config file that the user should have. This makes everything easier to
     #   deal with. Next step make it work with that configuration?
     def __init__(self, aws_access_key_id=None, aws_secret_access_key=None, aws_session_token=None):
@@ -24,7 +45,7 @@ class AwsManager(SecretsManager):
                                    aws_session_token=aws_session_token,
                                    region_name='eu-west-3')
 
-    def _retrieve_and_format_credentials(self, service_name:str) -> dict:
+    def _retrieve_and_format_credentials(self, service_name: str) -> dict:
         """
         Retrieves credentials using the client initialized
 
@@ -54,10 +75,5 @@ class AwsManager(SecretsManager):
             return True
         except Exception as e:
             print("Failed to retrieve the secrets. ")
+            print(e)
             return False
-
-
-
-
-
-

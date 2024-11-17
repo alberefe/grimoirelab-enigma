@@ -2,6 +2,7 @@
 .env
 config_files/hashicorp_vault_config.json
 config_files/aws_config.json
+
 # Ignore Python cache and virtual environments
 __pycache__/
 *.pyc

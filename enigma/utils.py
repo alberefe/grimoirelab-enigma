@@ -1,10 +1,28 @@
+# -*- coding: utf-8 -*-
+#
+#
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+# Author:
+#     Alberto Ferrer Sánchez (alberefe@gmail.com)
+#
+
 """
 My intention with this file is to have here all the functions that may be common to the credential management
 """
 import os
 
 
-# TODO: maybe do try except to check for possible exceptions
+# TODO: try except to check for possible exceptions
 def set_environment_variables(service_name: str, credentials: dict) -> bool:
     """
     From a dict containing the credentials retrieved, I then parse all the elements and assign their values to env var

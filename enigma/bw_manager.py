@@ -1,14 +1,33 @@
+# -*- coding: utf-8 -*-
+#
+#
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+# Author:
+#       Alberto Ferrer Sánchez (alberefe@gmail.com)
+#
+
 import json
 import subprocess
-import os
-from pprint import pprint
-from utils import set_environment_variables
-from secrets_manager import SecretsManager
+import utils
+import secrets_manager
 
 
-class BitwardenManager(SecretsManager):
+class BitwardenManager(secrets_manager.SecretsManager):
 
-    def __init__(self, email:str, password:str):
+    def __init__(self, email: str, password: str):
         """
         Loads credential types mapping from a JSON file to determine expected types of secrets
         for each service in Bitwarden.
@@ -22,7 +41,6 @@ class BitwardenManager(SecretsManager):
             self.service_mapping = json.load(file)
 
         self._login(email, password)
-
 
     def _login(self, bw_email: str, bw_password: str) -> str:
         """
@@ -48,7 +66,6 @@ class BitwardenManager(SecretsManager):
             capture_output=True,
             text=True
         )
-
 
         # if the status command was successful
         if status_result.returncode == 0:
@@ -86,7 +103,7 @@ class BitwardenManager(SecretsManager):
                     text=True
                 )
 
-                    # Check if the login was successful
+                # Check if the login was successful
                 if result.returncode != 0:
                     raise Exception("Failed to log into Bitwarden: " + result.stderr)
 
@@ -126,7 +143,7 @@ class BitwardenManager(SecretsManager):
         retrieved_secrets = json.loads(result.stdout)
         return retrieved_secrets
 
-    def _format_credentials(self, credentials:dict) -> dict:
+    def _format_credentials(self, credentials: dict) -> dict:
         """
         Formats the credentials, so I can pass them to the utils.set_environment_variables
 
@@ -173,7 +190,7 @@ class BitwardenManager(SecretsManager):
         try:
             unformatted_credentials = self._retrieve_credentials(service_name)
             formatted_credentials = self._format_credentials(unformatted_credentials)
-            set_environment_variables(service_name, formatted_credentials)
+            utils.set_environment_variables(service_name, formatted_credentials)
             return True
         except Exception as e:
             print(f"Failed to retrieve secrets from service: '{service_name}' from Bitwarden: {e}")

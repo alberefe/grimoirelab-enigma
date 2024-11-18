@@ -24,37 +24,39 @@ import json
 from botocore.exceptions import EndpointConnectionError
 from botocore.exceptions import SSLError
 from botocore.exceptions import ClientError
-from utils import set_environment_variables
 import boto3
+import logging
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
+#TODO: make this work with the .aws file that contains the config for the client
 class AwsManager(Enigma):
-    # TODO: the region should be in the .aws config file that the user should have. This makes everything easier to
-    #   deal with. Next step make it work with that configuration?
+
     def __init__(self, aws_access_key_id=None, aws_secret_access_key=None, aws_session_token=None):
         """
         Initializes the client that will access to the credentials management service.
 
         Args:
             aws_access_key_id (str, optional): AWS access key id. Defaults to None.
-            aws_secret_access_key (str, optional): AWS secret access key that corresponds to the key_id. Defaults to None.
+            aws_secret_access_key (str, optional): AWS secret access key that corresponds
+                                                    to the key_id. Defaults to None.
             aws_session_token (str, optional): AWS session token. Defaults to None.
         """
 
         # Creates a client using the credentials
         try:
+            logger.info("Initializing client and login in")
             self.client = boto3.client('secretsmanager', aws_access_key_id=aws_access_key_id,
                                        aws_secret_access_key=aws_secret_access_key,
                                        aws_session_token=aws_session_token,
                                        region_name='eu-west-3')
-        except EndpointConnectionError as e:
-            print("e connecting to the endpoing: " + e)
-        except SSLError as e:
-            print("e with the SSL connection: " + e)
-        except ClientError as e:
-            print("Client e:" + e)
-        except Exception as e:
-            print(e)
+        except(EndpointConnectionError,
+               SSLError,
+               ClientError,
+               Exception) as e:
+            logger.error("Problem starting the client: %s", e)
+            raise e
 
     def _retrieve_and_format_credentials(self, service_name: str) -> dict:
         """
@@ -66,36 +68,34 @@ class AwsManager(Enigma):
             formatted_credentials (dict): Dictionary containing the credentials retrieved and formatted as a dict
         """
         try:
+            logger.info("Retrieving credentials: %s", service_name)
             secret_value_response = self.client.get_secret_value(
                 SecretId=service_name
             )
             formatted_credentials = json.loads(secret_value_response['SecretString'])
             return formatted_credentials
-        except ClientError as e:
-            print("There was a problem accessing the secret:" + e)
-        except self.client.exceptions.ResourceNotFoundException as e:
-            print("Resource not found: " + e)
-        except self.client.exceptions.InternalServiceError as e:
-            print("Internal server e: " + e)
-        except Exception as e:
-            print(e)
 
-    def get_secret(self, service_name: str) -> bool:
+        except (
+                ClientError, self.client.exceptions.ResourceNotFoundException,
+                self.client.exceptions.InternalServiceError,
+                Exception) as e:
+            logger.error("There was an error retrieving credentials: %s", e)
+            raise e
+
+    def get_secret(self, service_name: str, credential_name: str) -> bool:
         """
         Gets a secret based on the service name
 
         Args:
-            service_name (str): Name of the service to retrieve credentials for.(or name of the secret)
+            service_name (str): Name of the service to retrieve credentials for
+            credential_name (str): Name of the credential
         Returns:
             bool: True if something was retrieved, False otherwise
         """
         try:
-            credentials = self._retrieve_and_format_credentials(service_name)
-            # TODO: this should return the secret.
-            set_environment_variables(service_name, credentials)
-            return True
-        # this catches only generic exceptions because they are raised lower
+            formatted_credentials = self._retrieve_and_format_credentials(service_name)
+            credential = formatted_credentials[credential_name]
+            return credential
         except Exception as e:
-            print("Failed to retrieve the secrets. ")
-            print(e)
-            return False
+            logger.error("There was a problem getting the secret")
+            raise e

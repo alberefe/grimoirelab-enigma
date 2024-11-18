@@ -24,6 +24,6 @@ from abc import ABC, abstractmethod
 
 class Enigma(ABC):
     @abstractmethod
-    def get_secret(self, service_name: str) -> bool:
+    def get_secret(self, service_name: str, credential: str) -> str:
         """Set environment variables for the secrets of the service."""
         pass

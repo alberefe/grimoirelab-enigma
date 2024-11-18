@@ -18,14 +18,20 @@
 # Author:
 #     Alberto Ferrer Sánchez (alberefe@gmail.com)
 #
+import logging
 
 import hvac
 import hvac.exceptions
-import utils
 from enigma import Enigma
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class HashicorpManager(Enigma):
+    """
+    A class to retrieve secrets from HashicorpVault
+    """
 
     def __init__(self, vault_url, token, certificate):
         """
@@ -38,32 +44,19 @@ class HashicorpManager(Enigma):
             certificate (str): The tls certificate.
         """
         try:
+            logger.info("Creating client and logging in.")
             self.client = hvac.Client(url=vault_url, token=token, verify=certificate)
+
         except Exception as e:
-            print("An error ocurred initializing the client:" + e)
+            logger.error("An error ocurred initializing the client: %e", e)
             # this is dealt with in the get_secret function
             raise e
 
         if self.client.sys.is_initialized():
-            print("Client is initialized")
+            logger.info("Client is initialized")
 
         if self.client.is_authenticated():
-            print("Client is authenticated")
-
-    def _format_credentials(self, credentials: dict) -> dict:
-        """
-        Function responsible for formatting the credentials so we can put them into
-        the funcion set_environment_variables.
-
-        Args:
-            credentials (dict): A dictionary containing the raw credentials retrieved from the vault.
-
-        """
-        formatted_credentials = {}
-        for key, value in credentials["data"]["data"].items():
-            formatted_credentials[key] = value
-
-        return formatted_credentials
+            logger.info("Client is authenticated")
 
     def _retrieve_credentials(self, service_name: str) -> dict:
         """
@@ -71,43 +64,40 @@ class HashicorpManager(Enigma):
 
         Args:
             service_name (str): The name of the service to retrieve credentials for
+
         Returns:
-            a dict containing all the data for that service. Includes metadata and other information stored in the vault
+            a dict containing all the data for that service. Includes metadata
+            and other information stored in the vault
         """
-        secret = self.client.secrets.kv.read_secret(path=service_name)
-
-        return secret
-
-    def get_secret(self, service_name: str) -> bool:
         try:
-            # Retrieves the credentials from vault
-            credentials = self._retrieve_credentials(service_name)
-            # Formats the credentials so we can assign their values to env vars
-            # If there's no need to assign the env vars, I could just return this dict
-            formatted_credentials = self._format_credentials(credentials)
-            # Sets env vars
-            utils.set_environment_variables(service_name, formatted_credentials)
-            return True
-        except hvac.exceptions.Forbidden as e:
-            print("There was an error accessing the vault")
-            print(e)
-        except hvac.exceptions.InternalServerError as e:
-            print("internal server error: " + e)
-        except hvac.exceptions.InvalidPath as e:
-            print("invalid path: " + e)
-        except hvac.exceptions.InvalidRequest as e:
-            print("invalid request: " + e)
-        except hvac.exceptions.RateLimitExceeded as e:
-            print("Rate limit Exceeded" + e)
-        except hvac.exceptions.Unauthorized:
-            print("Unauthorized" + e)
-        except hvac.exceptions.UnsupportedOperation as e:
-            print("Unsupported operation" + e)
-        except hvac.exceptions.VaultError as e:
-            print("Vault error: " + e)
-        except hvac.exceptions.VaultDown as e:
-            print("Vault down: " + e)
+            logger.info("Retrieving credentials from vault.")
+            secret = self.client.secrets.kv.read_secret(path=service_name)
+            return secret
         except Exception as e:
-            print("Could not retrieve credentials from vault")
-            print(e)
-            return False
+            logger.error("An error ocurred initializing the client: %e", e)
+            # this is dealt with in the get_secret function
+            raise e
+
+    def get_secret(self, service_name: str, credential_name: str) -> str:
+        """
+        Ahora mismo devuelve el valor de la variable de entorno que habrá generado
+        al recuperar secretos
+        """
+        try:
+            credentials = self._retrieve_credentials(service_name)
+            # We get the exact credential from the dict returned by the retrieval
+            credential = credentials["data"]["data"][credential_name]
+            return credential
+        except (
+                hvac.exceptions.Forbidden,
+                hvac.exceptions.InternalServerError,
+                hvac.exceptions.InvalidPath,
+                hvac.exceptions.InvalidRequest,
+                hvac.exceptions.RateLimitExceeded,
+                hvac.exceptions.Unauthorized,
+                hvac.exceptions.UnsupportedOperation,
+                hvac.exceptions.VaultDown,
+                hvac.exceptions.VaultError,
+        ) as e:
+            logger.error("There was an error retrieving the secret: %s", e)
+            return ""

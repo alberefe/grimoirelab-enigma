@@ -24,6 +24,7 @@ vault_unseal_key = vault_config["vault_unseal_key"]
 hashicorp_manager = HashicorpManager(vault_url, token, certificate)
 
 # Get the secret (it assigns it to env var)
-hashicorp_manager.get_secret("bugzilla")
-print("Variable de entorno asignada: " + os.getenv("BUGZILLA_USERNAME"))
+print(hashicorp_manager.get_secret("bugzilla", "username"))
+print(hashicorp_manager.get_secret("bugzilla", "password"))
+
 

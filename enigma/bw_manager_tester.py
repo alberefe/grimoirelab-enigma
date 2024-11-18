@@ -27,10 +27,10 @@ Uncomment the service that wants to be tested.
 If there are no secrets, none would be assigned.
 """
 # Fetch and use Bugzilla login credentials
-bw_manager.get_secret("bugzilla")
+# print(bw_manager.get_secret("bugzilla", "username"))
 
 # Fetch and use GitHub token
-# bw_manager.get_secret("github")
+print(bw_manager.get_secret("github", "api_token"))
 
 # Fetch and use SSH private key
 # bw_manager.get_secret("gerrit")
@@ -42,5 +42,3 @@ bw_manager.get_secret("bugzilla")
 # print("\nBUGZILLA USERNAME = " + os.getenv("BUGZILLA_USERNAME"))
 # print("BUGZILLA PASSWORD = " + os.getenv("BUGZILLA_PASSWORD"))
 
-backend_user = os.getenv("BUGZILLA_USERNAME")
-backend_password = os.getenv("BUGZILLA_PASSWORD")

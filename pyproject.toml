@@ -29,3 +29,7 @@ coverage = "^6.2"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 79
+select = ["BLK"]

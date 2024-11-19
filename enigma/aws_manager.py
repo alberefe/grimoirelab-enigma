@@ -19,7 +19,6 @@
 #     Alberto Ferrer Sánchez (alberefe@gmail.com)
 #
 
-from enigma import Enigma
 import json
 from botocore.exceptions import EndpointConnectionError
 from botocore.exceptions import SSLError
@@ -27,13 +26,18 @@ from botocore.exceptions import ClientError
 import boto3
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
-#TODO: make this work with the .aws file that contains the config for the client
-class AwsManager(Enigma):
 
-    def __init__(self, aws_access_key_id=None, aws_secret_access_key=None, aws_session_token=None):
+# TODO: make this work with the .aws file that contains the config for the client
+class AwsManager:
+
+    def __init__(
+        self, aws_access_key_id=None, aws_secret_access_key=None, aws_session_token=None
+    ):
         """
         Initializes the client that will access to the credentials management service.
 
@@ -47,14 +51,14 @@ class AwsManager(Enigma):
         # Creates a client using the credentials
         try:
             logger.info("Initializing client and login in")
-            self.client = boto3.client('secretsmanager', aws_access_key_id=aws_access_key_id,
-                                       aws_secret_access_key=aws_secret_access_key,
-                                       aws_session_token=aws_session_token,
-                                       region_name='eu-west-3')
-        except(EndpointConnectionError,
-               SSLError,
-               ClientError,
-               Exception) as e:
+            self.client = boto3.client(
+                "secretsmanager",
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key,
+                aws_session_token=aws_session_token,
+                region_name="eu-west-3",
+            )
+        except (EndpointConnectionError, SSLError, ClientError, Exception) as e:
             logger.error("Problem starting the client: %s", e)
             raise e
 
@@ -69,20 +73,20 @@ class AwsManager(Enigma):
         """
         try:
             logger.info("Retrieving credentials: %s", service_name)
-            secret_value_response = self.client.get_secret_value(
-                SecretId=service_name
-            )
-            formatted_credentials = json.loads(secret_value_response['SecretString'])
+            secret_value_response = self.client.get_secret_value(SecretId=service_name)
+            formatted_credentials = json.loads(secret_value_response["SecretString"])
             return formatted_credentials
 
         except (
-                ClientError, self.client.exceptions.ResourceNotFoundException,
-                self.client.exceptions.InternalServiceError,
-                Exception) as e:
+            ClientError,
+            self.client.exceptions.ResourceNotFoundException,
+            self.client.exceptions.InternalServiceError,
+            Exception,
+        ) as e:
             logger.error("There was an error retrieving credentials: %s", e)
             raise e
 
-    def get_secret(self, service_name: str, credential_name: str) -> bool:
+    def get_secret(self, service_name: str, credential_name: str) -> str:
         """
         Gets a secret based on the service name
 

@@ -21,15 +21,15 @@
 
 import json
 import subprocess
-
-from enigma import Enigma
 import logging
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
-class BitwardenManager(Enigma):
+class BitwardenManager:
 
     def __init__(self, email: str, password: str):
         """
@@ -69,10 +69,7 @@ class BitwardenManager(Enigma):
         try:
             logger.info("Checking Bitwarden login status")
             status_result = subprocess.run(
-                ["/snap/bin/bw", "status"],
-                capture_output=True,
-                text=True,
-                check=False
+                ["/snap/bin/bw", "status"], capture_output=True, text=True, check=False
             )
 
             # if the status command was successful
@@ -90,11 +87,13 @@ class BitwardenManager(Enigma):
                             ["/snap/bin/bw", "unlock", bw_password, "--raw"],
                             capture_output=True,
                             text=True,
-                            check=False
+                            check=False,
                         )
 
                         if unlock_result.returncode != 0:
-                            logger.error("Error unlocking vault: %s", unlock_result.stderr)
+                            logger.error(
+                                "Error unlocking vault: %s", unlock_result.stderr
+                            )
                             return ""
 
                         # Set the session key
@@ -118,7 +117,7 @@ class BitwardenManager(Enigma):
                         ["/snap/bin/bw", "login", bw_email, bw_password, "--raw"],
                         capture_output=True,
                         text=True,
-                        check=False
+                        check=False,
                     )
 
                     # Check if the login was successful
@@ -133,7 +132,9 @@ class BitwardenManager(Enigma):
             # Sync the vault
             if self.session_key:
                 logger.info("Syncing local vault with Bitwarden")
-                subprocess.run(["/snap/bin/bw", "sync", "--session", self.session_key], check=True)
+                subprocess.run(
+                    ["/snap/bin/bw", "sync", "--session", self.session_key], check=True
+                )
                 return self.session_key
 
             logger.info("Session key not found cause could not log in")
@@ -159,10 +160,17 @@ class BitwardenManager(Enigma):
         try:
             logger.info("Retrieving credential: %s", service_name)
             result = subprocess.run(
-                ["/snap/bin/bw", "get", "item", service_name, "--session", self.session_key],
+                [
+                    "/snap/bin/bw",
+                    "get",
+                    "item",
+                    service_name,
+                    "--session",
+                    self.session_key,
+                ],
                 capture_output=True,
                 text=True,
-                check=False
+                check=False,
             )
 
             if result.returncode != 0:
@@ -188,8 +196,17 @@ class BitwardenManager(Enigma):
             dict: A dictionary containing the formatted credentials.
         """
         # en el dict viene login{user, pass}, notes y los custom.
-        credential_types = ["api_key", "api_token", "api_username", "ssh_key", "bot_name", "bot_token", "app_key"]
+        credential_types = [
+            "api_key",
+            "api_token",
+            "api_username",
+            "ssh_key",
+            "bot_name",
+            "bot_token",
+            "app_key",
+        ]
         formatted_credentials = {}
+
         logger.info("Getting username and password")
         # get the basic credentials
         username = credentials.get("login", {}).get("username")
@@ -201,7 +218,6 @@ class BitwardenManager(Enigma):
             formatted_credentials["password"] = password
 
         logger.info("Getting custom field values")
-
         # checks for fields that could be potential credentials
         custom_fields = credentials["fields"]
 
@@ -212,7 +228,7 @@ class BitwardenManager(Enigma):
 
         return formatted_credentials
 
-    def get_secret(self, service_name: str, credential_name: str) -> bool:
+    def get_secret(self, service_name: str, credential_name: str) -> str:
         """
         Retrieves a secret by name from the Bitwarden vault and sets environment variables for it.
 

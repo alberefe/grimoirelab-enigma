@@ -22,13 +22,14 @@ import logging
 
 import hvac
 import hvac.exceptions
-from enigma import Enigma
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
-class HashicorpManager(Enigma):
+class HashicorpManager:
     """
     A class to retrieve secrets from HashicorpVault
     """
@@ -49,7 +50,7 @@ class HashicorpManager(Enigma):
 
         except Exception as e:
             logger.error("An error ocurred initializing the client: %e", e)
-            # this is dealt with in the get_secret function
+            # this is dealt with    in the get_secret function
             raise e
 
         if self.client.sys.is_initialized():
@@ -89,15 +90,15 @@ class HashicorpManager(Enigma):
             credential = credentials["data"]["data"][credential_name]
             return credential
         except (
-                hvac.exceptions.Forbidden,
-                hvac.exceptions.InternalServerError,
-                hvac.exceptions.InvalidPath,
-                hvac.exceptions.InvalidRequest,
-                hvac.exceptions.RateLimitExceeded,
-                hvac.exceptions.Unauthorized,
-                hvac.exceptions.UnsupportedOperation,
-                hvac.exceptions.VaultDown,
-                hvac.exceptions.VaultError,
+            hvac.exceptions.Forbidden,
+            hvac.exceptions.InternalServerError,
+            hvac.exceptions.InvalidPath,
+            hvac.exceptions.InvalidRequest,
+            hvac.exceptions.RateLimitExceeded,
+            hvac.exceptions.Unauthorized,
+            hvac.exceptions.UnsupportedOperation,
+            hvac.exceptions.VaultDown,
+            hvac.exceptions.VaultError,
         ) as e:
             logger.error("There was an error retrieving the secret: %s", e)
             return ""

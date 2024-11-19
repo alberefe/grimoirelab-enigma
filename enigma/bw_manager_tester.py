@@ -4,6 +4,7 @@ File that executes the bw manager things for developing purposes and testing the
 I'm using a json file to store the credentials, so I can access them from the script without having to set them every
 time
 """
+
 import os
 from dotenv import load_dotenv
 from bw_manager import BitwardenManager
@@ -17,7 +18,9 @@ bw_password = os.getenv("BW_PASSWORD")
 
 # Ensure the environment variables are set
 if not bw_email or not bw_password:
-    raise ValueError("Please set the BW_EMAIL and BW_PASSWORD environment variables in the .env file")
+    raise ValueError(
+        "Please set the BW_EMAIL and BW_PASSWORD environment variables in the .env file"
+    )
 
 # Create a BitwardenManager object using the secrets manager interface
 bw_manager = BitwardenManager(bw_email, bw_password)
@@ -41,4 +44,3 @@ print(bw_manager.get_secret("github", "api_token"))
 
 # print("\nBUGZILLA USERNAME = " + os.getenv("BUGZILLA_USERNAME"))
 # print("BUGZILLA PASSWORD = " + os.getenv("BUGZILLA_PASSWORD"))
-

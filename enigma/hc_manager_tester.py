@@ -26,5 +26,3 @@ hashicorp_manager = HashicorpManager(vault_url, token, certificate)
 # Get the secret (it assigns it to env var)
 print(hashicorp_manager.get_secret("bugzilla", "username"))
 print(hashicorp_manager.get_secret("bugzilla", "password"))
-
-

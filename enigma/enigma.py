@@ -18,12 +18,21 @@
 # Author:
 #     Alberto Ferrer Sánchez (alberefe@gmail.com)
 #
+from bw_manager import BitwardenManager
+from aws_manager import AwsManager
+from hc_manager import HashicorpManager
 
-from abc import ABC, abstractmethod
 
-
-class Enigma(ABC):
-    @abstractmethod
-    def get_secret(self, service_name: str, credential: str) -> str:
-        """Set environment variables for the secrets of the service."""
-        pass
+def get_secret(secrets_manager, service_name, credential_name) -> str:
+    """
+    Function that initializes the corresponding manager and returns the credential
+    """
+    if secrets_manager == "bitwarden":
+        secrets_manager = BitwardenManager()
+        return secrets_manager.get_secret(service_name, credential_name)
+    elif secrets_manager == "hashicorp":
+        secrets_manager = HashicorpManager()
+        return secrets_manager.get_secret(service_name, credential_name)
+    elif secrets_manager == "aws":
+        secrets_manager = AwsManager()
+        return secrets_manager.get_secret(service_name, credential_name)

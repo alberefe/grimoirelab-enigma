@@ -9,7 +9,9 @@ aws_username = aws_config["aws_access_key_id"]
 aws_password = aws_config["aws_secret_access_key"]
 
 # Creates the object with the credentials
-aws_manager = AwsManager(aws_access_key_id=aws_username, aws_secret_access_key=aws_password)
+aws_manager = AwsManager(
+    aws_access_key_id=aws_username, aws_secret_access_key=aws_password
+)
 
 print(aws_manager.get_secret("bugzilla", "username"))
 print(aws_manager.get_secret("bugzilla", "password"))

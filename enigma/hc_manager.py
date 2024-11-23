@@ -75,7 +75,7 @@ class HashicorpManager:
             secret = self.client.secrets.kv.read_secret(path=service_name)
             return secret
         except Exception as e:
-            logger.error("An error ocurred initializing the client: %e", e)
+            logger.error("Error retrieving the secret: %e", e)
             # this is dealt with in the get_secret function
             raise e
 
@@ -101,4 +101,7 @@ class HashicorpManager:
             hvac.exceptions.VaultError,
         ) as e:
             logger.error("There was an error retrieving the secret: %s", e)
+            return ""
+        except KeyError as e:
+            logger.error("The credential %s was not found", credential_name)
             return ""

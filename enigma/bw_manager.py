@@ -35,6 +35,13 @@ class BitwardenManager:
         """
         Loads credential types mapping from a JSON file to determine expected types of secrets
         for each service in Bitwarden.
+
+        Args:
+            email (str): The email of the user
+            password (str): The password of the user
+
+        Raises:
+            FileNotFoundError: If no credentials file is found
         """
         # Session key of the bw session
         self.session_key = None
@@ -144,7 +151,7 @@ class BitwardenManager:
             _logger.error("There was a problem login in: %s", e)
             raise e
 
-    def _retrieve_credentials(self, service_name):
+    def _retrieve_credentials(self, service_name: str) -> dict:
         """
         Retrieves a secret from a particular service from the Bitwarden vault.
 

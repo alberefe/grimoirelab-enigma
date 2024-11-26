@@ -19,12 +19,10 @@
 #     Alberto Ferrer Sánchez (alberefe@gmail.com)
 #
 
-import json
-from botocore.exceptions import EndpointConnectionError
-from botocore.exceptions import SSLError
-from botocore.exceptions import ClientError
-import boto3
 import logging
+import json
+import boto3
+from botocore.exceptions import EndpointConnectionError, SSLError, ClientError
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

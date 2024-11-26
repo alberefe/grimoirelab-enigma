@@ -34,7 +34,7 @@ class HashicorpManager:
     A class to retrieve secrets from HashicorpVault
     """
 
-    def __init__(self, vault_url, token, certificate):
+    def __init__(self, vault_url: str, token: str, certificate: str):
         """
         Initializes the client with the corresponding token to interact with the vault, so no login
         is required in vault.
@@ -43,6 +43,9 @@ class HashicorpManager:
             vault_url (str): The vault URL.
             token (str): The access token.
             certificate (str): The tls certificate.
+
+        Raises:
+            Exception: If couldn't inizialize the client
         """
         try:
             _logger.info("Creating client and logging in.")
@@ -69,6 +72,9 @@ class HashicorpManager:
         Returns:
             a dict containing all the data for that service. Includes metadata
             and other information stored in the vault
+
+        Raises:
+            Exception: If couldn't retrieve credentials'
         """
         try:
             _logger.info("Retrieving credentials from vault.")
@@ -81,8 +87,17 @@ class HashicorpManager:
 
     def get_secret(self, service_name: str, credential_name: str) -> str:
         """
-        Ahora mismo devuelve el valor de la variable de entorno que habrá generado
-        al recuperar secretos
+        Retrieves the value of the service + credential named.
+
+        Args:
+            service_name (str): The name of the service to retrieve credentials for
+            credential_name (str): The name of the credential to retrieve
+
+        Returns:
+            str: The value of the credential
+
+        Raises:
+            Exception: If couldn't retrieve credentials'
         """
         try:
             credentials = self._retrieve_credentials(service_name)

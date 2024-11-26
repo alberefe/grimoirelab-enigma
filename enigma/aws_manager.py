@@ -32,7 +32,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# TODO: make this work with the .aws file that contains the config for the client
 class AwsManager:
 
     def __init__(
@@ -40,6 +39,9 @@ class AwsManager:
     ):
         """
         Initializes the client that will access to the credentials management service.
+
+        If no arguments are present, it searches for them in the .aws folder.
+        This constructor also takes other relevant information from that folder if it exists.
 
         Args:
             aws_access_key_id (str, optional): AWS access key id. Defaults to None.
@@ -56,7 +58,6 @@ class AwsManager:
                 aws_access_key_id=aws_access_key_id,
                 aws_secret_access_key=aws_secret_access_key,
                 aws_session_token=aws_session_token,
-                region_name="eu-west-3",
             )
         except (EndpointConnectionError, SSLError, ClientError, Exception) as e:
             logger.error("Problem starting the client: %s", e)

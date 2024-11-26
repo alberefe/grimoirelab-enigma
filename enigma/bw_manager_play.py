@@ -27,7 +27,6 @@ bw_manager = BitwardenManager(bw_email, bw_password)
 
 """
 Uncomment the service that wants to be tested.
-If there are no secrets, none would be assigned.
 """
 # Fetch and use Bugzilla login credentials
 # print(bw_manager.get_secret("bugzilla", "username"))

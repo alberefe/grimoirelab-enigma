@@ -48,6 +48,9 @@ class AwsManager:
             aws_secret_access_key (str, optional): AWS secret access key that corresponds
                                                     to the key_id. Defaults to None.
             aws_session_token (str, optional): AWS session token. Defaults to None.
+
+        Raises:
+            Exception: If there's a connection error.
         """
 
         # Creates a client using the credentials
@@ -65,12 +68,16 @@ class AwsManager:
 
     def _retrieve_and_format_credentials(self, service_name: str) -> dict:
         """
-        Retrieves credentials using the client initialized
+        Retrieves credentials using the class client.
 
         Args:
             service_name (str): Name of the service to retrieve credentials for.(or name of the secret)
+
         Returns:
             formatted_credentials (dict): Dictionary containing the credentials retrieved and formatted as a dict
+
+        Raises:
+            Exception: If there's a connection error.
         """
         try:
             _logger.info("Retrieving credentials: %s", service_name)
@@ -89,13 +96,17 @@ class AwsManager:
 
     def get_secret(self, service_name: str, credential_name: str) -> str:
         """
-        Gets a secret based on the service name
+        Gets a secret based on the service name and the desired credential.
 
         Args:
             service_name (str): Name of the service to retrieve credentials for
             credential_name (str): Name of the credential
+
         Returns:
             bool: True if something was retrieved, False otherwise
+
+        Raises:
+            Exception: If there's a connection error.
         """
         try:
             formatted_credentials = self._retrieve_and_format_credentials(service_name)

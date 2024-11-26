@@ -18,8 +18,8 @@
 # Author:
 #     Alberto Ferrer Sánchez (alberefe@gmail.com)
 #
-import logging
 
+import logging
 import hvac
 import hvac.exceptions
 

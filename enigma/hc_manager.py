@@ -26,7 +26,7 @@ import hvac.exceptions
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class HashicorpManager:
@@ -45,19 +45,19 @@ class HashicorpManager:
             certificate (str): The tls certificate.
         """
         try:
-            logger.info("Creating client and logging in.")
+            _logger.info("Creating client and logging in.")
             self.client = hvac.Client(url=vault_url, token=token, verify=certificate)
 
         except Exception as e:
-            logger.error("An error ocurred initializing the client: %e", e)
+            _logger.error("An error ocurred initializing the client: %e", e)
             # this is dealt with    in the get_secret function
             raise e
 
         if self.client.sys.is_initialized():
-            logger.info("Client is initialized")
+            _logger.info("Client is initialized")
 
         if self.client.is_authenticated():
-            logger.info("Client is authenticated")
+            _logger.info("Client is authenticated")
 
     def _retrieve_credentials(self, service_name: str) -> dict:
         """
@@ -71,11 +71,11 @@ class HashicorpManager:
             and other information stored in the vault
         """
         try:
-            logger.info("Retrieving credentials from vault.")
+            _logger.info("Retrieving credentials from vault.")
             secret = self.client.secrets.kv.read_secret(path=service_name)
             return secret
         except Exception as e:
-            logger.error("Error retrieving the secret: %e", e)
+            _logger.error("Error retrieving the secret: %e", e)
             # this is dealt with in the get_secret function
             raise e
 
@@ -100,8 +100,8 @@ class HashicorpManager:
             hvac.exceptions.VaultDown,
             hvac.exceptions.VaultError,
         ) as e:
-            logger.error("There was an error retrieving the secret: %s", e)
+            _logger.error("There was an error retrieving the secret: %s", e)
             return ""
         except KeyError as e:
-            logger.error("The credential %s was not found", credential_name)
+            _logger.error("The credential %s was not found", credential_name)
             return ""

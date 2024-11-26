@@ -26,7 +26,7 @@ import logging
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 class BitwardenManager:
@@ -41,13 +41,13 @@ class BitwardenManager:
 
         try:
             # load the credential types mapping from the json file and logs in
-            logger.info("Loading credential types from config file")
+            _logger.info("Loading credential types from config file")
             credentials_type_file_path = "../config_files/credential_types.json"
             with open(credentials_type_file_path, "r", encoding="utf-8") as file:
                 self.service_mapping = json.load(file)
             self._login(email, password)
         except FileNotFoundError:
-            logger.error("File not found")
+            _logger.error("File not found")
 
     def _login(self, bw_email: str, bw_password: str) -> str:
         """
@@ -67,22 +67,22 @@ class BitwardenManager:
             Exception: If unlocking or logging into Bitwarden fails.
         """
         try:
-            logger.info("Checking Bitwarden login status")
+            _logger.info("Checking Bitwarden login status")
             status_result = subprocess.run(
                 ["/snap/bin/bw", "status"], capture_output=True, text=True, check=False
             )
 
             # if the status command was successful
             if status_result.returncode == 0:
-                logger.info("Checking vault status")
+                _logger.info("Checking vault status")
                 # Parse the JSON output from `bw status`
                 status = json.loads(status_result.stdout)
 
                 if status.get("userEmail") == bw_email:
-                    logger.info("User was already authenticated: %s", bw_email)
+                    _logger.info("User was already authenticated: %s", bw_email)
                     # If the vault is locked, unlock it
                     if status.get("status") == "locked":
-                        logger.info("Vault locked, unlocking")
+                        _logger.info("Vault locked, unlocking")
                         unlock_result = subprocess.run(
                             ["/snap/bin/bw", "unlock", bw_password, "--raw"],
                             capture_output=True,
@@ -91,7 +91,7 @@ class BitwardenManager:
                         )
 
                         if unlock_result.returncode != 0:
-                            logger.error(
+                            _logger.error(
                                 "Error unlocking vault: %s", unlock_result.stderr
                             )
                             return ""
@@ -100,18 +100,18 @@ class BitwardenManager:
                         self.session_key = unlock_result.stdout.strip()
 
                     elif status.get("status") == "unlocked":
-                        logger.info("Vault unlocked, getting session key")
+                        _logger.info("Vault unlocked, getting session key")
 
                         # If already unlocked, retrieve the current session key
                         self.session_key = status.get("sessionKey")
 
                     # Ensure session key is set
                     if not self.session_key:
-                        logger.info("Couldn't obtain session key during login")
+                        _logger.info("Couldn't obtain session key during login")
                         return ""
 
                 else:
-                    logger.info("Login in: %s", bw_email)
+                    _logger.info("Login in: %s", bw_email)
                     # Login to Bitwarden if not already logged in
                     result = subprocess.run(
                         ["/snap/bin/bw", "login", bw_email, bw_password, "--raw"],
@@ -122,26 +122,26 @@ class BitwardenManager:
 
                     # Check if the login was successful
                     if result.returncode != 0:
-                        logger.error("Error logging in: %s ", result.stderr)
+                        _logger.error("Error logging in: %s ", result.stderr)
                         return ""
 
                     # Setting session key
-                    logger.info("Setting session key")
+                    _logger.info("Setting session key")
                     self.session_key = result.stdout.strip()
 
             # Sync the vault
             if self.session_key:
-                logger.info("Syncing local vault with Bitwarden")
+                _logger.info("Syncing local vault with Bitwarden")
                 subprocess.run(
                     ["/snap/bin/bw", "sync", "--session", self.session_key], check=True
                 )
                 return self.session_key
 
-            logger.info("Session key not found cause could not log in")
+            _logger.info("Session key not found cause could not log in")
             return ""
 
         except Exception as e:
-            logger.error("There was a problem login in: %s", e)
+            _logger.error("There was a problem login in: %s", e)
             raise e
 
     def _retrieve_credentials(self, service_name):
@@ -158,7 +158,7 @@ class BitwardenManager:
             Exception: If retrieval of the secret fails.
         """
         try:
-            logger.info("Retrieving credential: %s", service_name)
+            _logger.info("Retrieving credential: %s", service_name)
             result = subprocess.run(
                 [
                     "/snap/bin/bw",
@@ -174,15 +174,15 @@ class BitwardenManager:
             )
 
             if result.returncode != 0:
-                logger.error("Failed to retrieve secret: %s", result.stderr)
+                _logger.error("Failed to retrieve secret: %s", result.stderr)
                 return None
 
             retrieved_secrets = json.loads(result.stdout)
         except Exception as e:
-            logger.error("There was a problem retrieving secret: %s", e)
+            _logger.error("There was a problem retrieving secret: %s", e)
             raise e
 
-        logger.info("Secrets succesfully retrieved")
+        _logger.info("Secrets succesfully retrieved")
         return retrieved_secrets
 
     def _format_credentials(self, credentials: dict) -> dict:
@@ -207,7 +207,7 @@ class BitwardenManager:
         ]
         formatted_credentials = {}
 
-        logger.info("Getting username and password")
+        _logger.info("Getting username and password")
         # get the basic credentials
         username = credentials.get("login", {}).get("username")
         if username is not None:
@@ -217,7 +217,7 @@ class BitwardenManager:
         if username is not None:
             formatted_credentials["password"] = password
 
-        logger.info("Getting custom field values")
+        _logger.info("Getting custom field values")
         # checks for fields that could be potential credentials
         custom_fields = credentials["fields"]
 

@@ -32,34 +32,22 @@ _logger = logging.getLogger(__name__)
 
 class AwsManager:
 
-    def __init__(
-        self, aws_access_key_id=None, aws_secret_access_key=None, aws_session_token=None
-    ):
+    def __init__(self):
         """
         Initializes the client that will access to the credentials management service.
 
         If no arguments are present, it searches for them in the .aws folder.
         This constructor also takes other relevant information from that folder if it exists.
 
-        Args:
-            aws_access_key_id (str, optional): AWS access key id. Defaults to None.
-            aws_secret_access_key (str, optional): AWS secret access key that corresponds
-                                                    to the key_id. Defaults to None.
-            aws_session_token (str, optional): AWS session token. Defaults to None.
-
         Raises:
             Exception: If there's a connection error.
         """
 
-        # Creates a client using the credentials
+        # Creates a client using the credentials found in the .aws folder
         try:
             _logger.info("Initializing client and login in")
-            self.client = boto3.client(
-                "secretsmanager",
-                aws_access_key_id=aws_access_key_id,
-                aws_secret_access_key=aws_secret_access_key,
-                aws_session_token=aws_session_token,
-            )
+            self.client = boto3.client("secretsmanager")
+
         except (EndpointConnectionError, SSLError, ClientError, Exception) as e:
             _logger.error("Problem starting the client: %s", e)
             raise e

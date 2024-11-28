@@ -32,13 +32,15 @@ Uncomment the service that wants to be tested.
 # print(bw_manager.get_secret("bugzilla", "username"))
 
 # Fetch and use GitHub token
-print(bw_manager.get_secret("github", "api_token"))
+print(bw_manager.get_secret("github", "username"))
+print(bw_manager.get_secret("github", "password"))
+print(bw_manager.get_secret("github", "api_key"))
 
 # Fetch and use SSH private key
-# bw_manager.get_secret("gerrit")
+print(bw_manager.get_secret("gerrit", "ssh_key"))
 
 # Fetch and use StackExchange credentials
-# bw_manager.get_secret("stackexchange")
+print(bw_manager.get_secret("stackexchange", "api_token"))
 
 
 # print("\nBUGZILLA USERNAME = " + os.getenv("BUGZILLA_USERNAME"))

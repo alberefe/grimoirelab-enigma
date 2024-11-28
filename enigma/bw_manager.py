@@ -44,14 +44,13 @@ class BitwardenManager:
             FileNotFoundError: If no credentials file is found
         """
         # Session key of the bw session
+        self.formatted_credentials = {}
         self.session_key = None
 
         try:
             # load the credential types mapping from the json file and logs in
             _logger.info("Loading credential types from config file")
-            credentials_type_file_path = "../config_files/credential_types.json"
-            with open(credentials_type_file_path, "r", encoding="utf-8") as file:
-                self.service_mapping = json.load(file)
+            credentials_type_file_path = "../config/credential_types.json"
             self._login(email, password)
         except FileNotFoundError:
             _logger.error("File not found")
@@ -182,7 +181,7 @@ class BitwardenManager:
 
             if result.returncode != 0:
                 _logger.error("Failed to retrieve secret: %s", result.stderr)
-                return None
+                return {}
 
             retrieved_secrets = json.loads(result.stdout)
         except Exception as e:
@@ -203,37 +202,27 @@ class BitwardenManager:
             dict: A dictionary containing the formatted credentials.
         """
         # en el dict viene login{user, pass}, notes y los custom.
-        credential_types = [
-            "api_key",
-            "api_token",
-            "api_username",
-            "ssh_key",
-            "bot_name",
-            "bot_token",
-            "app_key",
-        ]
-        formatted_credentials = {}
+
+        self.formatted_credentials["service_name"] = credentials["name"].lower()
 
         _logger.info("Getting username and password")
         # get the basic credentials
         username = credentials.get("login", {}).get("username")
         if username is not None:
-            formatted_credentials["username"] = username
+            self.formatted_credentials["username"] = username
 
         password = credentials.get("login", {}).get("password")
-        if username is not None:
-            formatted_credentials["password"] = password
+        if password is not None:
+            self.formatted_credentials["password"] = password
 
         _logger.info("Getting custom field values")
         # checks for fields that could be potential credentials
-        custom_fields = credentials["fields"]
 
-        for field in custom_fields:
+        for field in credentials.get("fields", []):
             field_name = field["name"]
-            if field_name in credential_types:
-                formatted_credentials[field_name] = field["value"]
+            self.formatted_credentials[field_name] = field["value"]
 
-        return formatted_credentials
+        return self.formatted_credentials
 
     def get_secret(self, service_name: str, credential_name: str) -> str:
         """
@@ -247,10 +236,17 @@ class BitwardenManager:
             credential_name (str): The concrete credential to retrieve.
 
         Returns:
-            bool: True if the secret was successfully retrieved and environment variables were set,
-                  False otherwise.
+            str: The secret value retrieved.
         """
-        unformatted_credentials = self._retrieve_credentials(service_name)
-        formatted_credentials = self._format_credentials(unformatted_credentials)
-        credential = formatted_credentials[credential_name]
-        return credential
+        # If stored credentials are not available or belong to a different service
+        if (
+            not self.formatted_credentials
+            or self.formatted_credentials.get("service_name") != service_name
+        ):
+            unformatted_credentials = self._retrieve_credentials(service_name)
+            self.formatted_credentials = self._format_credentials(
+                unformatted_credentials
+            )
+
+        # Return the requested credential
+        return self.formatted_credentials.get(credential_name)

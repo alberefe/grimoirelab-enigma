@@ -1,6 +1,5 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#
-#
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,9 +17,12 @@
 # Author:
 #     Alberto Ferrer Sánchez (alberefe@gmail.com)
 #
+
+import argparse
 import getpass
 import logging
 import os
+import sys
 
 from bw_manager import BitwardenManager
 from aws_manager import AwsManager
@@ -37,35 +39,65 @@ def get_secret(secrets_manager_name, service_name, credential_name) -> str:
     Function that initializes the corresponding manager and returns the credential
     """
     if secrets_manager_name == "bitwarden":
-        # Tries to get the user + password for bitwarden from env vars and if not it prompts the user to put them
-        username = os.environ["BW_USERNAME"]
-        password = os.environ["BW_PASSWORD"]
+        # Tries to get the user + password for Bitwarden from env vars and prompts if not available
+        username = os.environ.get("BW_USERNAME")
+        password = os.environ.get("BW_PASSWORD")
 
-        if username and password:
-            secrets_handler = BitwardenManager(username, password)
-        else:
+        if not username or not password:
             username = input("Bitwarden email: ")
             password = getpass.getpass("Bitwarden master password: ")
-            secrets_handler = BitwardenManager(username, password)
 
+        secrets_handler = BitwardenManager(username, password)
         return secrets_handler.get_secret(service_name, credential_name)
 
     elif secrets_manager_name == "hashicorp":
         try:
-            # needs to have the things in env variables
+            # Needs environment variables for HashiCorp Vault
             vault_addr = os.environ["VAULT_ADDR"]
             vault_token = os.environ["VAULT_TOKEN"]
             vault_cacert = os.environ["VAULT_CACERT"]
-            if vault_addr and vault_token and vault_cacert:
-                secrets_handler = HashicorpManager(
-                    vault_addr, vault_token, vault_cacert
-                )
-                return secrets_handler.get_secret(service_name, credential_name)
+
+            secrets_handler = HashicorpManager(vault_addr, vault_token, vault_cacert)
+            return secrets_handler.get_secret(service_name, credential_name)
 
         except KeyError as e:
-            print("Missing environment variables needed to initialize the vault client")
+            _logger.error(
+                "Missing environment variables needed to initialize the vault client."
+            )
             raise e
 
     elif secrets_manager_name == "aws":
         secrets_handler = AwsManager()
         return secrets_handler.get_secret(service_name, credential_name)
+
+    else:
+        _logger.error("Unsupported secrets manager: %s", secrets_manager_name)
+        sys.exit(1)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Retrieve a secret from a specified secrets manager."
+    )
+    parser.add_argument(
+        "manager",
+        choices=["bitwarden", "hashicorp", "aws"],
+        help="The name of the secrets manager to use.",
+    )
+    parser.add_argument(
+        "service", help="The name of the service for which to retrieve the credential."
+    )
+    parser.add_argument("credential", help="The name of the credential to retrieve.")
+
+    args = parser.parse_args()
+
+    try:
+        secret = get_secret(args.manager, args.service, args.credential)
+        print(f"Retrieved secret: {secret}")
+    except Exception as e:
+        _logger.error("Error retrieving secret: %s", e)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

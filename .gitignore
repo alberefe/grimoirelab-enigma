@@ -10,3 +10,6 @@ __pycache__/
 .idea/
 
 # Ignore .py files that are not complete or relevant for the moment
+aws_manager_play.py
+hc_manager_play.py
+bw_manager_play.py

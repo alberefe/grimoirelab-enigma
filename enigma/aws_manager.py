@@ -24,6 +24,8 @@ import json
 import boto3
 from botocore.exceptions import EndpointConnectionError, SSLError, ClientError
 
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('botocore').setLevel(logging.WARNING)
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -36,7 +38,7 @@ class AwsManager:
         """
         Initializes the client that will access to the credentials management service.
 
-        If no arguments are present, it searches for them in the .aws folder.
+        This takes the credentials to log into aws from the .aws folder.
         This constructor also takes other relevant information from that folder if it exists.
 
         Raises:

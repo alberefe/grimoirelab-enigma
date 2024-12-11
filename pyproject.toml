@@ -33,6 +33,5 @@ pytest = "^8.3.3"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.ruff]
-line-length = 79
-select = ["BLK"]
+[tool.poetry.scripts]
+enigma = 'enigma.enigma:get_secret'

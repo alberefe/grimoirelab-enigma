@@ -1,118 +1,135 @@
-Current dependencies: 
+# Grimoirelab Enigma
+---
 
-- dotenv
-- json
-- os
-- hvac
+This is a module made to retrieve credentials from different secrets management systems like Bitwarden.
 
-(in the future I'm planning to manage all dependencies with poetry, like the rest of grimoirelab)
+It accesses the secrets management service, looks for the desired credential and returns it in String form. 
 
-# bw_manager.py
+## Requirements
 
-Instructions to test the class bitwarden_manager.py
+- Python >= 3.9
+- Poetry >= 1.8.4
+- hvac >= 2.3.0
+- boto3 >= 1.35.63
 
-1. Create .env file and add the credentials used to access your vault. (or the vault where the credentials are stored)
+All the dependencies are listed in the pyproject.toml file.
 
-   - BW_EMAIL=your_bitwarden_accout_email_here
-   - BW_PASSWORD=your_bitwarden_password_here
+## Installation
+---
 
-    bw_manager_tester will use these credentials in order to login into the account. 
+### Getting the source code
 
-2. Store a secret (or more) in your bitwarden vault. It has to follow the format:
-   
-   - Name of the secret must be the service to access in lowcase, for example "github", "bugzilla".
-   - For fields other than username:password, create a new field inside the secret and name it according to the structure
-      provided in credential_types.json. The program will look for fields named after the file and assign their names
-      according to the type of credential + service that's being accessed. 
-   
-      That is, if I want to store and access a github api token, I'd create a secret called "github", then inside this
-      secret, a field called "api_token" in which storing said token.
+To install you will need to clone the repository:
 
-3. Inside bw_manager_tester, uncomment the corresponding line according to the secret we want to retrieve. So if you
-    stored github secret, then uncomment the line: 
-    
-    bw_manager.get_secret("github")
+```
+$ git clone https://github.com/alberefe/grimoirelab-enigma.git 
+$ cd grimoirelab-enigma
+```
 
-4. The credentials are stored in environment variables printed in the terminal, and we could then use them in a script 
-    in order to access the service. That is, the get_secret() function assigns each credential found for that service
-    an environment variable, based on the service + type of credential. 
+### Installing
 
-    For example:  if I recover a bugzilla username and bugzilla password, the env vars will be called respectively:
-        - BUGZILLA_USERNAME
-        - BUGZILLA_PASSWORD
+[Poetry]( https://python-poetry.org/) is used for managing the project. You can install it following [these steps](https://python-poetry.org/docs/#installing-with-pipx).
 
-    Other examples would be: 
-        - GITHUB_API_TOKEN
-        - GERRIT_SSH_KEY
+Install the required dependencies (this will also create a virtual environment).
 
-    With this naming I'm trying to make it easy for Perceval or other parts of Grimoirelab to use the correct credential.
+```
+$ poetry install
+```
 
-    
-# hc_manager.py
+Activate the virtual environment. 
+
+```
+$ poetry shell
+```
 
 
-1. Install hashicorp vault in the system. The instructions are found here depending on your OS:
-   
-    https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-install
+## Usage
+---
 
-2. Start the server. 
+There are two ways to use this module
 
-    ```
-    $ vault server -dev-tls
-    ```
+- In the terminal
+- As a python module that can be called by other python code. 
 
-    The terminal will show some data that we should store in the next steps:
+### Terminal 
 
-3. Save the following data in *../config_files/hashicorp_vault_config.json*
-    
-   - vault_url
-   - vault_unseal_key
+To use this, any of these two is valid:
 
-4. Set the following env vars in *.env* file
+```
+$ python3 enigma.py <manager> <service> <credential>
+$ ./enigma.py <manager> <service> <credential>
+```
 
-   - VAULT_ADDR
-   - VAULT_TOKEN
-   - VAULT_CACERT
+Where:
 
-    The vault token in the dev environment is the root_token, but in production it could be any token that 
-    allows the user to unseal the vault and retrieve secrets from it. 
+- manager → credential manager used to store the credentials (Bitwarden, aws, Hashicorp Vault)
+- service → the platform to which you want to connect (github, gitlab, bugzilla)
+- credential → the credential that you want to retrieve (username, password, api-token)
 
-    In development mode the vault starts unsealed and stays like that. 
+Examples:
 
-5. Set environment variables in our system to store our testing credentials
+```
+$ python3 enigma.py bitwarden bugzilla username
+$ python3 enigma.py hashicorp bugzilla password
+$ python3 enigma.py aws github api-token
+```
 
-    ```
-    $ export VAULT_ADDR=....
-    $ export VAULT_CACERT=....
-    ```
-6. Store a username:password pair for bugzilla service.
+In each case, the script will log / access into the corresponding vault, search for the secret with the name of the service that wants to be accessed and then retrieve, from that secret, the value with the name inserted as credential. 
 
-    ```
-    $ vault kv put secret/bugzilla username=bugzilla_user password=bugzilla_password
-    ```
-    
-    This stores in the path "secret/bugzilla" the two elements, username and password. We can do this with any other
-    type of credential. I'll be using the same naming convention for the elements stored. 
+That is, in the first case, it will log into Bitwarden, access the secret called "bugzilla", and from it retrieve the value of the field "username". 
 
-    We can check that the secret has been stored with
-   
-    ```
-    $ vault kv get /secret/bugzilla/
-    ```
-   
-7. Run hc_manager_tester.py
+Each of the secrets management services are accessed in different forms and need different configurations to work, as specified in the [[#Managers]] section.
 
+### In python code
 
-# aws_manager.py
+To use the module in your python code, import the module
 
-1. You need an aws account, and a user that can access the secrets manager. So first steps:
+```
+from enigma import enigma
+```
 
-   - Store secrets using the format:
-     - Name of the secret must be the name of the service (i.e. bugzilla)
-     - Inside, name the fields as the type of credential (i.e. api_key)
+Then, you can call 
 
-2. In security credentials, assign an access key to the user that's going to access the vault. This key, for now will
-    go to the aws_config.json file that should be stored in ../config_files/
+```
+enigma.get_secret(secrets_manager, service_name, credential_name)
+```
 
-3. On the aws_manager_tester.py file, make sure the credentials are retrieved from the correct file and run the program.
-    It should assign the env vars correctly. 
+And the function will return the desired credential in **String** form. 
+
+## Managers
+---
+
+This section explains the different things to consider when using each of the supported secrets management services, like where to store the credentials to access the secrets manager.
+
+### AWS
+
+The module uses [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html), and this looks for your credentials in the .aws folder, in the files "credentials" and "config".  
+
+The credentials file contains your credentials for accessing your aws account, that is your *aws_access_key_id* and *aws_secret_access_key*. 
+
+The config file contains the region in which the script will work, that should be the one of your aws account. 
+
+This two pieces of information are necessary for the script to access your account.
+
+More about this [here](https://docs.aws.amazon.com/sdkref/latest/guide/file-location.html). 
+
+### Hashicorp Vault
+
+In this case, [hvac](https://hvac.readthedocs.io/en/stable/overview.html) is used. 
+
+The function will look for the following environment variables to get into the vault, and prompt the user for them if not found:
+
+- VAULT_ADDR  → Address of the Vault server.
+- VAULT_TOKEN → A Vault-issued service token that authenticates the CLI user to Vault.
+- VAULT_CACERT → Path to a PEM-encoded CA certificate file on the local disk. Used to verify SSL certificates for the server
+
+More info on this can be found [here](https://developer.hashicorp.com/vault/docs/commands).
+
+### Bitwarden
+
+In this case, [Bitwarden CLI](https://bitwarden.com/help/cli/) is used. 
+
+To log in, the function will look for the following environment variables to log into the vault, and prompt the user for them if not found:
+
+- BW_EMAIL → the email used to log into the bitwarden account
+- BW_PASSWORD

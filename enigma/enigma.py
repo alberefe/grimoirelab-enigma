@@ -40,14 +40,14 @@ def get_secret(secrets_manager_name, service_name, credential_name) -> str:
     """
     if secrets_manager_name == "bitwarden":
         # Tries to get the user + password for Bitwarden from env vars and prompts if not available
-        username = os.environ.get("BW_USERNAME")
+        email = os.environ.get("BW_EMAIL")
         password = os.environ.get("BW_PASSWORD")
 
-        if not username or not password:
-            username = input("Bitwarden email: ")
+        if not email or not password:
+            email = input("Bitwarden email: ")
             password = getpass.getpass("Bitwarden master password: ")
 
-        secrets_handler = BitwardenManager(username, password)
+        secrets_handler = BitwardenManager(email, password)
         return secrets_handler.get_secret(service_name, credential_name)
 
     elif secrets_manager_name == "hashicorp":
@@ -56,6 +56,15 @@ def get_secret(secrets_manager_name, service_name, credential_name) -> str:
             vault_addr = os.environ["VAULT_ADDR"]
             vault_token = os.environ["VAULT_TOKEN"]
             vault_cacert = os.environ["VAULT_CACERT"]
+
+            if not vault_addr:
+                vault_addr = input("Please enter vault address: ")
+            if not vault_token:
+                vault_token = input("Please enter vault token: ")
+            if not vault_cacert:
+                vault_cacert = input(
+                    "Please enter path to a PEM-encoded CA certificate file on the local disk: "
+                )
 
             secrets_handler = HashicorpManager(vault_addr, vault_token, vault_cacert)
             return secrets_handler.get_secret(service_name, credential_name)

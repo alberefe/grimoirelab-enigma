@@ -1,5 +1,5 @@
 # Grimoirelab Enigma
----
+
 
 This is a module made to retrieve credentials from different secrets management systems like Bitwarden.
 
@@ -15,7 +15,7 @@ It accesses the secrets management service, looks for the desired credential and
 All the dependencies are listed in the pyproject.toml file.
 
 ## Installation
----
+
 
 ### Getting the source code
 
@@ -44,7 +44,7 @@ $ poetry shell
 
 
 ## Usage
----
+
 
 There are two ways to use this module
 
@@ -97,7 +97,7 @@ enigma.get_secret(secrets_manager, service_name, credential_name)
 And the function will return the desired credential in **String** form. 
 
 ## Managers
----
+
 
 This section explains the different things to consider when using each of the supported secrets management services, like where to store the credentials to access the secrets manager.
 

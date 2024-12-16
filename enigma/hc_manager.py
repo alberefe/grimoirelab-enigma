@@ -107,7 +107,6 @@ class HashicorpManager:
         except (
             hvac.exceptions.Forbidden,
             hvac.exceptions.InternalServerError,
-            hvac.exceptions.InvalidPath,
             hvac.exceptions.InvalidRequest,
             hvac.exceptions.RateLimitExceeded,
             hvac.exceptions.Unauthorized,
@@ -119,4 +118,7 @@ class HashicorpManager:
             return ""
         except KeyError as e:
             _logger.error("The credential %s was not found", credential_name)
+            return ""
+        except hvac.exceptions.InvalidPath:
+            _logger.error("The path %s does not exist in the vault", service_name)
             return ""

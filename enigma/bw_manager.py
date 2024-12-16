@@ -248,5 +248,14 @@ class BitwardenManager:
                 unformatted_credentials
             )
 
-        # Return the requested credential
-        return self.formatted_credentials.get(credential_name)
+        secret = self.formatted_credentials.get(credential_name)
+        # in case nothing was found
+        if not secret:
+            _logger.error(
+                "The credential %s:%s, was not found.", service_name, credential_name
+            )
+            _logger.error("In the meantime here you got an empty string")
+            return ""
+        else:
+            # Return the requested credential
+            return secret

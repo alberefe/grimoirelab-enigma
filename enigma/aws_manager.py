@@ -24,8 +24,8 @@ import json
 import boto3
 from botocore.exceptions import EndpointConnectionError, SSLError, ClientError
 
-logging.getLogger('urllib3').setLevel(logging.WARNING)
-logging.getLogger('botocore').setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("botocore").setLevel(logging.WARNING)
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -75,9 +75,7 @@ class AwsManager:
 
         except (
             ClientError,
-            self.client.exceptions.ResourceNotFoundException,
             self.client.exceptions.InternalServiceError,
-            Exception,
         ) as e:
             _logger.error("There was an error retrieving credentials: %s", e)
             raise e
@@ -100,6 +98,10 @@ class AwsManager:
             formatted_credentials = self._retrieve_and_format_credentials(service_name)
             credential = formatted_credentials[credential_name]
             return credential
+        except self.client.exceptions.ResourceNotFoundException as e:
+            _logger.error("The secret %s was not found.", service_name)
+            _logger.error(e)
+            return ""
         except Exception as e:
             _logger.error("There was a problem getting the secret")
             raise e

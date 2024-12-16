@@ -99,8 +99,9 @@ class AwsManager:
             credential = formatted_credentials[credential_name]
             return credential
         except self.client.exceptions.ResourceNotFoundException as e:
-            _logger.error("The secret %s was not found.", service_name)
+            _logger.error("The secret %s:%s, was not found.", service_name, credential_name)
             _logger.error(e)
+            _logger.error("Please check the secret name and the credential name. For now here you have an empty string.")
             return ""
         except Exception as e:
             _logger.error("There was a problem getting the secret")

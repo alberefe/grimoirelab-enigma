@@ -22,6 +22,8 @@
 import json
 import subprocess
 import logging
+from datetime import datetime, timedelta
+from functools import lru_cache
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -44,13 +46,14 @@ class BitwardenManager:
             FileNotFoundError: If no credentials file is found
         """
         # Session key of the bw session
-        self.formatted_credentials = {}
         self.session_key = None
+        self.formatted_credentials = {}
+        # store email for session validation
+        self._email = email
+        self.last_sync_time = None
+        self.sync_interval = timedelta(minutes=5)
 
         try:
-            # load the credential types mapping from the json file and logs in
-            _logger.info("Loading credential types from config file")
-            credentials_type_file_path = "../config/credential_types.json"
             self._login(email, password)
         except FileNotFoundError:
             _logger.error("File not found")
@@ -73,21 +76,29 @@ class BitwardenManager:
             Exception: If unlocking or logging into Bitwarden fails.
         """
         try:
+            # If we have a session key, check if sync is needed
+            if self.session_key and self._validate_session():
+                if self._should_sync():
+                    self._sync_vault()
+                return self.session_key
+
             _logger.info("Checking Bitwarden login status")
             status_result = subprocess.run(
                 ["/snap/bin/bw", "status"], capture_output=True, text=True, check=False
             )
 
-            # if the status command was successful
             if status_result.returncode == 0:
                 _logger.info("Checking vault status")
-                # Parse the JSON output from `bw status`
                 status = json.loads(status_result.stdout)
 
                 if status.get("userEmail") == bw_email:
                     _logger.info("User was already authenticated: %s", bw_email)
-                    # If the vault is locked, unlock it
-                    if status.get("status") == "locked":
+
+                    if status.get("status") == "unlocked":
+                        _logger.info("Vault unlocked, getting session key")
+                        self.session_key = status.get("sessionKey")
+
+                    elif status.get("status") == "locked":
                         _logger.info("Vault locked, unlocking")
                         unlock_result = subprocess.run(
                             ["/snap/bin/bw", "unlock", bw_password, "--raw"],
@@ -102,23 +113,14 @@ class BitwardenManager:
                             )
                             return ""
 
-                        # Set the session key
                         self.session_key = unlock_result.stdout.strip()
 
-                    elif status.get("status") == "unlocked":
-                        _logger.info("Vault unlocked, getting session key")
-
-                        # If already unlocked, retrieve the current session key
-                        self.session_key = status.get("sessionKey")
-
-                    # Ensure session key is set
                     if not self.session_key:
                         _logger.info("Couldn't obtain session key during login")
                         return ""
 
                 else:
                     _logger.info("Login in: %s", bw_email)
-                    # Login to Bitwarden if not already logged in
                     result = subprocess.run(
                         ["/snap/bin/bw", "login", bw_email, bw_password, "--raw"],
                         capture_output=True,
@@ -126,21 +128,22 @@ class BitwardenManager:
                         check=False,
                     )
 
-                    # Check if the login was successful
                     if result.returncode != 0:
                         _logger.error("Error logging in: %s ", result.stderr)
                         return ""
 
-                    # Setting session key
                     _logger.info("Setting session key")
                     self.session_key = result.stdout.strip()
 
-            # Sync the vault
             if self.session_key:
-                _logger.info("Syncing local vault with Bitwarden")
-                subprocess.run(
-                    ["/snap/bin/bw", "sync", "--session", self.session_key], check=True
-                )
+                # Only sync if needed based on time interval
+                if self._should_sync():
+                    _logger.info("Syncing local vault with Bitwarden")
+                    subprocess.run(
+                        ["/snap/bin/bw", "sync", "--session", self.session_key],
+                        check=True,
+                    )
+                    self.last_sync_time = datetime.now()
                 return self.session_key
 
             _logger.info("Session key not found cause could not log in")
@@ -150,9 +153,48 @@ class BitwardenManager:
             _logger.error("There was a problem login in: %s", e)
             raise e
 
+    def _validate_session(self) -> bool:
+        """Validates if the current session is still valid."""
+        try:
+            status_result = subprocess.run(
+                ["/snap/bin/bw", "status"], capture_output=True, text=True, check=False
+            )
+
+            if status_result.returncode != 0:
+                return False
+
+            status = json.loads(status_result.stdout)
+            return (
+                status.get("status") == "unlocked"
+                and status.get("userEmail") == self._email
+                and status.get("sessionKey") == self.session_key
+            )
+        except:
+            return False
+
+    def _should_sync(self) -> bool:
+        """Determines if vault sync is needed based on last sync time."""
+        return (
+            not self.last_sync_time
+            or datetime.now() - self.last_sync_time > self.sync_interval
+        )
+
+    def _sync_vault(self) -> None:
+        """Syncs the vault and updates last sync time."""
+        try:
+            _logger.info("Syncing vault")
+            subprocess.run(
+                ["/snap/bin/bw", "sync", "--session", self.session_key], check=True
+            )
+            self.last_sync_time = datetime.now()
+        except subprocess.CalledProcessError as e:
+            _logger.error("Sync failed: %s", e)
+
+    @lru_cache(maxsize=32)
     def _retrieve_credentials(self, service_name: str) -> dict:
         """
         Retrieves a secret from a particular service from the Bitwarden vault.
+        This function is cached using LRU cache with a maximum size of 32 entries.
 
         Args:
             service_name (str): The name of the service for which to retrieve the secret.
@@ -164,7 +206,7 @@ class BitwardenManager:
             Exception: If retrieval of the secret fails.
         """
         try:
-            _logger.info("Retrieving credential: %s", service_name)
+            _logger.info("Retrieving credential from Bitwarden CLI: %s", service_name)
             result = subprocess.run(
                 [
                     "/snap/bin/bw",
@@ -184,45 +226,37 @@ class BitwardenManager:
                 return {}
 
             retrieved_secrets = json.loads(result.stdout)
+            _logger.info("Secrets successfully retrieved and cached")
+            return retrieved_secrets
+
         except Exception as e:
             _logger.error("There was a problem retrieving secret: %s", e)
             raise e
 
-        _logger.info("Secrets succesfully retrieved")
-        return retrieved_secrets
-
     def _format_credentials(self, credentials: dict) -> dict:
         """
-        Formats the credentials, so I can pass them to the utils.set_environment_variables
+        Formats the credentials retrieved from Bitwarden into a standardized format.
 
         Args:
-            credentials (dict): A dictionary containing the unformatted credentials.
+            credentials (dict): Raw credentials from Bitwarden
 
         Returns:
-            dict: A dictionary containing the formatted credentials.
+            dict: Formatted credentials with standardized keys
         """
-        # en el dict viene login{user, pass}, notes y los custom.
+        formatted = {"service_name": credentials["name"].lower()}
 
-        self.formatted_credentials["service_name"] = credentials["name"].lower()
+        # Get username and password from login section
+        login = credentials.get("login", {})
+        if login.get("username"):
+            formatted["username"] = login["username"]
+        if login.get("password"):
+            formatted["password"] = login["password"]
 
-        _logger.info("Getting username and password")
-        # get the basic credentials
-        username = credentials.get("login", {}).get("username")
-        if username is not None:
-            self.formatted_credentials["username"] = username
-
-        password = credentials.get("login", {}).get("password")
-        if password is not None:
-            self.formatted_credentials["password"] = password
-
-        _logger.info("Getting custom field values")
-        # checks for fields that could be potential credentials
-
+        # Get custom fields
         for field in credentials.get("fields", []):
-            field_name = field["name"]
-            self.formatted_credentials[field_name] = field["value"]
+            formatted[field["name"]] = field["value"]
 
-        return self.formatted_credentials
+        return formatted
 
     def get_secret(self, service_name: str, credential_name: str) -> str:
         """
@@ -259,3 +293,7 @@ class BitwardenManager:
         else:
             # Return the requested credential
             return secret
+
+    def clear_cache(self):
+        """Clears the LRU cache."""
+        self._retrieve_credentials.cache_clear()

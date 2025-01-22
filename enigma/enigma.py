@@ -34,7 +34,7 @@ logging.basicConfig(
 )
 _logger = logging.getLogger(__name__)
 
-# Initialize persistent manager instances
+# Initialize persistent manager instances so we can utilize cache
 _bw_manager: Optional[BitwardenManager] = None
 _aws_manager: Optional[AwsManager] = None
 _hc_manager: Optional[HashicorpManager] = None
@@ -65,7 +65,7 @@ def _initialize_bitwarden() -> BitwardenManager:
 
 def _initialize_hashicorp() -> HashicorpManager:
     """
-    Initialize the Hashicorp manager with proper credentials.
+    Initialize the Hashicorp manager with credentials.
 
     Returns:
         HashicorpManager: An initialized HashicorpManager instance
@@ -84,7 +84,7 @@ def _initialize_hashicorp() -> HashicorpManager:
             vault_token = input("Please enter vault token: ")
         if not vault_cacert:
             vault_cacert = input(
-                "Please enter path to a PEM-encoded CA certificate file on the local disk: "
+                "Please enter path to a PEM-encoded CA certificate file: "
             )
 
         if not all([vault_addr, vault_token, vault_cacert]):
@@ -101,8 +101,7 @@ def get_secret(
     secrets_manager_name: str, service_name: str, credential_name: str
 ) -> str:
     """
-    Retrieve a secret using persistent manager instances.
-    Managers are created once and reused across calls to maintain caching and session state.
+    Retrieve a secret from the secrets manager.
 
     Args:
         secrets_manager_name (str): The name of the secrets manager to be used

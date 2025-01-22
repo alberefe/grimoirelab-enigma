@@ -35,8 +35,7 @@ class BitwardenManager:
 
     def __init__(self, email: str, password: str):
         """
-        Loads credential types mapping from a JSON file to determine expected types of secrets
-        for each service in Bitwarden.
+        Logs in bitwarden if not already.
 
         Args:
             email (str): The email of the user
@@ -51,7 +50,7 @@ class BitwardenManager:
         # store email for session validation
         self._email = email
         self.last_sync_time = None
-        self.sync_interval = timedelta(minutes=5)
+        self.sync_interval = timedelta(minutes=3)
 
         try:
             self._login(email, password)
@@ -154,7 +153,7 @@ class BitwardenManager:
             raise e
 
     def _validate_session(self) -> bool:
-        """Validates if the current session is still valid."""
+        """Checks current session."""
         try:
             status_result = subprocess.run(
                 ["/snap/bin/bw", "status"], capture_output=True, text=True, check=False
@@ -197,7 +196,7 @@ class BitwardenManager:
         This function is cached using LRU cache with a maximum size of 32 entries.
 
         Args:
-            service_name (str): The name of the service for which to retrieve the secret.
+            service_name (str): The name of the data source for which to retrieve the secret.
 
         Returns:
             dict: The secret item retrieved from Bitwarden as a dictionary.
@@ -260,10 +259,7 @@ class BitwardenManager:
 
     def get_secret(self, service_name: str, credential_name: str) -> str:
         """
-        Retrieves a secret by name from the Bitwarden vault and sets environment variables for it.
-
-        Calls `_set_environment_variables` to retrieve and set environment variables based
-        on the secret fields defined in `service_mapping`.
+        Retrieves a secret by name from the Bitwarden vault.
 
         Args:
             service_name (str): The name of the secret to retrieve.
@@ -293,7 +289,3 @@ class BitwardenManager:
         else:
             # Return the requested credential
             return secret
-
-    def clear_cache(self):
-        """Clears the LRU cache."""
-        self._retrieve_credentials.cache_clear()

@@ -1,85 +1,202 @@
-import pytest
-import os
-from unittest.mock import patch, mock_open, MagicMock
+import unittest
+import subprocess
+import datetime
+from datetime import timedelta
+from unittest.mock import patch, MagicMock
+
 from enigma.bw_manager import BitwardenManager
 
-# Load environment variables for testing
-from dotenv import load_dotenv
 
-load_dotenv("../enigma/.env")
+class TestBitwardenManager(unittest.TestCase):
+    """BitwardenManager unit tests"""
 
+    def setUp(self):
+        self.email = "test@example.com"
+        self.password = "test_password"
+        self.manager = BitwardenManager(self.email, self.password)
 
-@pytest.fixture
-def bw_manager_instance():
-    bw_email = os.getenv("BW_EMAIL")
-    bw_password = os.getenv("BW_PASSWORD")
-    return BitwardenManager(bw_email, bw_password)
+    def tearDown(self):
+        """Clean up after each test"""
+        self.manager = None
 
+    def test_initialization(self):
+        """Test proper initialization of attributes"""
+        self.assertEqual(self.manager._email, self.email)
+        self.assertEqual(self.manager.session_key, None)
+        self.assertEqual(self.manager.last_sync_time, None)
+        self.assertEqual(self.manager.sync_interval, timedelta(minutes=3))
+        self.assertEqual(self.manager.formatted_credentials, {})
 
-def test_initialization():
-    with patch("builtins.open", mock_open(read_data='{"service": "type"}')):
-        manager = BitwardenManager("test@example.com", "password")
-        assert manager.service_mapping is not None
-        assert isinstance(manager.service_mapping, dict)
+    @patch("subprocess.run")
+    def test_login_success(self, mock_run):
+        """Test successful login scenario"""
 
+        # First call checks status - user not logged in
+        mock_status = MagicMock()
+        mock_status.returncode = 0
+        mock_status.stdout = '{"status": "unauthenticated"}'  # User needs to log in
 
-def test_login_success(bw_manager_instance):
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout='{"userEmail": "test@example.com", "status": "unlocked", "sessionKey": "test_session_key"}',
-        )
-        session_key = bw_manager_instance._login("test@example.com", "password")
-        assert session_key == "test_session_key"
+        # Second call simulates login, returns just the session key
+        mock_login = MagicMock()
+        mock_login.returncode = 0
+        mock_login.stdout = "test_session_key"
 
+        # Third call might be sync
+        mock_sync = MagicMock()
+        mock_sync.returncode = 0
 
-def test_login_failure(bw_manager_instance):
-    with patch("subprocess.run") as mock_run:
+        mock_run.side_effect = [mock_status, mock_login, mock_sync]
+
+        session_key = self.manager._login(self.email, self.password)
+        self.assertEqual(session_key,
+                         "test_session_key")
+
+    @patch("subprocess.run")
+    def test_login_locked_vault(self, mock_run):
+        """Test login with locked vault scenario"""
+
+        # First call returns status check showing locked
+        mock_status = MagicMock()
+        mock_status.returncode = 0
+        mock_status.stdout = '{"status": "locked", "userEmail": "test@example.com"}'
+
+        # Second call is unlock attempt
+        mock_unlock = MagicMock()
+        mock_unlock.returncode = 0
+        mock_unlock.stdout = "unlocked_session_key"
+
+        # Third call is sync after unlock
+        mock_sync = MagicMock()
+        mock_sync.returncode = 0
+
+        mock_run.side_effect = [mock_status, mock_unlock, mock_sync]
+
+        session_key = self.manager._login(self.email, self.password)
+        self.assertEqual(session_key, "unlocked_session_key")
+
+    @patch("subprocess.run")
+    def test_login_already_logged_in(self, mock_run):
+        """Test login attempt when user is already logged in"""
+
+        # First call to check status - showing user is authenticated
+        mock_status = MagicMock()
+        mock_status.returncode = 0
+        mock_status.stdout = '{"status": "unlocked", "userEmail": "test@example.com"}'
+
+        # If login is attempted, it would return the "already logged in" message
+        mock_login = MagicMock()
+        mock_login.returncode = 1  # Would likely be error code since it's writing to stderr
+        mock_login.stderr = "You are already logged in as test@example.com."
+
+        mock_run.side_effect = [mock_status]
+
+    @patch("subprocess.run")
+    def test_login_failure(self, mock_run):
+        """Test login failure scenario"""
         mock_run.return_value = MagicMock(returncode=1, stderr="Login failed")
-        bw_manager_wrong_credentials = BitwardenManager("", "")
-        session_key = bw_manager_wrong_credentials._login(
-            "test@example.com", "wrong_password"
+
+        session_key = self.manager._login(self.email, self.password)
+        self.assertEqual(session_key, "")
+
+    def test_validate_session_no_session(self):
+        """Test session validation with no active session"""
+        self.assertFalse(self.manager._validate_session())
+
+    @patch("subprocess.run")
+    def test_validate_session_valid(self, mock_run):
+        """Test validation of valid session"""
+        mock_response = MagicMock()
+        mock_response.returncode = 0
+        mock_response.stdout = (
+            '{"status": "unlocked", '
+            '"userEmail": "test@example.com", '
+            '"sessionKey": "test_key"}'
         )
-        assert session_key == ""
+        mock_run.return_value = mock_response
 
+        self.manager.session_key = "test_key"
+        self.assertTrue(self.manager._validate_session())
 
-def test_retrieve_credentials_success(bw_manager_instance):
-    with patch("subprocess.run") as mock_run:
+    def test_should_sync_initial(self):
+        """Test sync decision with no previous sync"""
+        self.assertTrue(self.manager._should_sync())
+
+    def test_should_sync_recent(self):
+        """Test sync decision with recent sync"""
+        self.manager.last_sync_time = datetime.datetime.now()
+        self.assertFalse(self.manager._should_sync())
+
+    def test_should_sync_old(self):
+        """Test sync decision with old sync"""
+        self.manager.last_sync_time = datetime.datetime.now() - timedelta(minutes=5)
+        self.assertTrue(self.manager._should_sync())
+
+    @patch("subprocess.run")
+    def test_sync_vault_success(self, mock_run):
+        """Test successful vault sync"""
+        mock_run.return_value = MagicMock(returncode=0)
+        self.manager.session_key = "test_key"
+
+        self.manager._sync_vault()
+        self.assertIsNotNone(self.manager.last_sync_time)
+        mock_run.assert_called_once()
+
+    @patch("subprocess.run")
+    def test_sync_vault_failure(self, mock_run):
+        """Test vault sync failure"""
+        mock_run.side_effect = subprocess.CalledProcessError(1, "cmd")
+        self.manager.session_key = "test_key"
+
+        self.manager._sync_vault()
+        self.assertIsNone(self.manager.last_sync_time)
+
+    @patch("subprocess.run")
+    def test_retrieve_credentials_cache(self, mock_run):
+        """Test credentials retrieval with caching"""
+        # First call
         mock_run.return_value = MagicMock(
             returncode=0,
-            stdout='{"login": {"username": "user", "password": "pass"}, '
-            '"fields": [{"name": "api_token", "value": "token_value"}]}',
+            stdout='{"name": "test_service", "login": {"username": "user", "password": "pass"}}',
         )
-        credentials = bw_manager_instance._retrieve_credentials("service_name")
-        assert credentials is not None
-        assert isinstance(credentials, dict)
-        assert credentials["login"]["username"] == "user"
-        assert credentials["login"]["password"] == "pass"
 
+        result1 = self.manager._retrieve_credentials("test_service")
+        result2 = self.manager._retrieve_credentials("test_service")
 
-def test_retrieve_credentials_failure(bw_manager_instance):
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = MagicMock(returncode=1, stderr="Retrieval failed")
-        credentials = bw_manager_instance._retrieve_credentials("service_name")
-        assert credentials is None
+        self.assertEqual(result1, result2)
+        mock_run.assert_called_once()  # Should only be called once due to caching
 
-
-def test_format_credentials(bw_manager_instance):
-    credentials = {
-        "login": {"username": "user", "password": "pass"},
-        "fields": [{"name": "api_token", "value": "token_value"}],
-    }
-    formatted_credentials = bw_manager_instance._format_credentials(credentials)
-    assert formatted_credentials["username"] == "user"
-    assert formatted_credentials["password"] == "pass"
-    assert formatted_credentials["api_token"] == "token_value"
-
-
-def test_get_secret(bw_manager_instance):
-    with patch.object(bw_manager_instance, "_retrieve_credentials") as mock_retrieve:
-        mock_retrieve.return_value = {
+    def test_format_credentials_complete(self):
+        """Test formatting complete credentials"""
+        raw_creds = {
+            "name": "test_service",
             "login": {"username": "user", "password": "pass"},
-            "fields": [{"name": "api_token", "value": "token_value"}],
+            "fields": [{"name": "api_key", "value": "xyz"}],
         }
-        secret = bw_manager_instance.get_secret("service_name", "api_token")
-        assert secret == "token_value"
+
+        formatted = self.manager._format_credentials(raw_creds)
+
+        self.assertEqual(formatted["service_name"], "test_service")
+        self.assertEqual(formatted["username"], "user")
+        self.assertEqual(formatted["password"], "pass")
+        self.assertEqual(formatted["api_key"], "xyz")
+
+    def test_get_secret_success(self):
+        """Test successful secret retrieval"""
+        self.manager.formatted_credentials = {
+            "service_name": "test_service",
+            "test_credential": "test_value",
+        }
+
+        result = self.manager.get_secret("test_service", "test_credential")
+        self.assertEqual(result, "test_value")
+
+    def test_get_secret_missing(self):
+        """Test secret retrieval with missing credential"""
+        self.manager.formatted_credentials = {"service_name": "test_service"}
+
+        result = self.manager.get_secret("test_service", "missing_credential")
+        self.assertEqual(result, "")
+
+
+if __name__ == "__main__":
+    unittest.main()

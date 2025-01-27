@@ -52,7 +52,7 @@ class HashicorpManager:
             self.client = hvac.Client(url=vault_url, token=token, verify=certificate)
 
         except Exception as e:
-            _logger.error("An error ocurred initializing the client: %e", e)
+            _logger.error("An error ocurred initializing the client: %s", str(e))
             # this is dealt with    in the get_secret function
             raise e
 
@@ -81,7 +81,7 @@ class HashicorpManager:
             secret = self.client.secrets.kv.read_secret(path=service_name)
             return secret
         except Exception as e:
-            _logger.error("Error retrieving the secret: %e", e)
+            _logger.error("Error retrieving the secret: %s", str(e))
             # this is dealt with in the get_secret function
             raise e
 
@@ -116,7 +116,7 @@ class HashicorpManager:
         ) as e:
             _logger.error("There was an error retrieving the secret: %s", e)
             return ""
-        except KeyError as e:
+        except KeyError:
             _logger.error("The credential %s was not found", credential_name)
             return ""
         except hvac.exceptions.InvalidPath:

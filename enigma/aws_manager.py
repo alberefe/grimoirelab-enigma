@@ -72,12 +72,8 @@ class AwsManager:
             secret_value_response = self.client.get_secret_value(SecretId=service_name)
             formatted_credentials = json.loads(secret_value_response["SecretString"])
             return formatted_credentials
-
-        except (
-            ClientError,
-            self.client.exceptions.InternalServiceError,
-        ) as e:
-            _logger.error("There was an error retrieving credentials: %s", e)
+        except (ClientError, json.JSONDecodeError) as e:
+            _logger.error("Error retrieving the secret: %s", str(e))
             raise e
 
     def get_secret(self, service_name: str, credential_name: str) -> str:
@@ -89,7 +85,7 @@ class AwsManager:
             credential_name (str): Name of the credential
 
         Returns:
-            bool: True if something was retrieved, False otherwise
+            str: The credential value if found, empty string if not found
 
         Raises:
             Exception: If there's a connection error.
@@ -98,11 +94,22 @@ class AwsManager:
             formatted_credentials = self._retrieve_and_format_credentials(service_name)
             credential = formatted_credentials[credential_name]
             return credential
-        except self.client.exceptions.ResourceNotFoundException as e:
+        except KeyError:
+            # This handles when the credential doesn't exist in the secret
             _logger.error("The secret %s:%s, was not found.", service_name, credential_name)
-            _logger.error(e)
-            _logger.error("Please check the secret name and the credential name. For now here you have an empty string.")
+            _logger.error(
+                "Please check the secret name and the credential name. For now here you have an empty string.")
             return ""
+        except ClientError as e:
+            # This handles AWS-specific errors like ResourceNotFoundException
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                _logger.error("The secret %s:%s, was not found.", service_name, credential_name)
+                _logger.error(e)
+                _logger.error(
+                    "Please check the secret name and the credential name. For now here you have an empty string.")
+                return ""
+            _logger.error("There was a problem getting the secret")
+            raise e
         except Exception as e:
             _logger.error("There was a problem getting the secret")
             raise e

@@ -5,7 +5,6 @@ from botocore.exceptions import ClientError, EndpointConnectionError, SSLError
 
 from enigma.aws_manager import AwsManager
 
-# Mock response for AWS Secrets Manager
 MOCK_SECRET_RESPONSE = {
     "ARN": "arn:aws:secretsmanager:region:account:secret:test-secret-123456",
     "Name": "test-secret",
@@ -15,7 +14,7 @@ MOCK_SECRET_RESPONSE = {
 }
 
 def test_initialization():
-    """Test successful initialization of AWS Manager"""
+    """Test successful initialization"""
     with patch('boto3.client') as mock_boto:
         mock_boto.return_value = MagicMock()
         manager = AwsManager()
@@ -40,7 +39,7 @@ def test_initialization_ssl_error():
             AwsManager()
 
 def test_retrieve_and_format_credentials_success():
-    """Test successful credential retrieval and formatting"""
+    """Test successful retrieval and formatting of credentials"""
     with patch('boto3.client') as mock_boto:
         mock_client = MagicMock()
         mock_client.get_secret_value.return_value = MOCK_SECRET_RESPONSE
@@ -63,13 +62,14 @@ def test_retrieve_and_format_credentials_not_found():
                 'Message': 'Secret not found'
             }
         }
-        # Create ClientError exception properly
+
         mock_client.get_secret_value.side_effect = ClientError(
             error_response, 'GetSecretValue'
         )
         mock_boto.return_value = mock_client
 
         manager = AwsManager()
+
         with pytest.raises(Exception):
             manager._retrieve_and_format_credentials("nonexistent-secret")
 
@@ -83,6 +83,7 @@ def test_retrieve_and_format_credentials_invalid_json():
         mock_boto.return_value = mock_client
 
         manager = AwsManager()
+
         with pytest.raises(json.JSONDecodeError):
             manager._retrieve_and_format_credentials("test-secret")
 
@@ -94,17 +95,19 @@ def test_get_secret_success():
         mock_boto.return_value = mock_client
 
         manager = AwsManager()
+
         result = manager.get_secret("test-secret", "api_key")
         assert result == "test_key"
 
 def test_get_secret_missing_credential():
-    """Test handling of missing credential in secret"""
+    """Test handling of non existant credential"""
     with patch('boto3.client') as mock_boto:
         mock_client = MagicMock()
         mock_client.get_secret_value.return_value = MOCK_SECRET_RESPONSE
         mock_boto.return_value = mock_client
 
         manager = AwsManager()
+
         result = manager.get_secret("test-secret", "nonexistent_credential")
         assert result == ""
 
@@ -124,5 +127,6 @@ def test_get_secret_service_error():
         mock_boto.return_value = mock_client
 
         manager = AwsManager()
+
         with pytest.raises(Exception):
             manager.get_secret("test-secret", "api_key")

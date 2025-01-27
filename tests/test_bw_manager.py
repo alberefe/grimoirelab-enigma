@@ -20,7 +20,7 @@ class TestBitwardenManager(unittest.TestCase):
         self.manager = None
 
     def test_initialization(self):
-        """Test proper initialization of attributes"""
+        """Test initialization of attributes"""
         self.assertEqual(self.manager._email, self.email)
         self.assertEqual(self.manager.session_key, None)
         self.assertEqual(self.manager.last_sync_time, None)
@@ -29,7 +29,7 @@ class TestBitwardenManager(unittest.TestCase):
 
     @patch("subprocess.run")
     def test_login_success(self, mock_run):
-        """Test successful login scenario"""
+        """Test successful login"""
 
         # First call checks status - user not logged in
         mock_status = MagicMock()
@@ -48,12 +48,11 @@ class TestBitwardenManager(unittest.TestCase):
         mock_run.side_effect = [mock_status, mock_login, mock_sync]
 
         session_key = self.manager._login(self.email, self.password)
-        self.assertEqual(session_key,
-                         "test_session_key")
+        self.assertEqual(session_key, "test_session_key")
 
     @patch("subprocess.run")
     def test_login_locked_vault(self, mock_run):
-        """Test login with locked vault scenario"""
+        """Test login with locked vault"""
 
         # First call returns status check showing locked
         mock_status = MagicMock()
@@ -85,21 +84,21 @@ class TestBitwardenManager(unittest.TestCase):
 
         # If login is attempted, it would return the "already logged in" message
         mock_login = MagicMock()
-        mock_login.returncode = 1  # Would likely be error code since it's writing to stderr
+        mock_login.returncode = 1
         mock_login.stderr = "You are already logged in as test@example.com."
 
         mock_run.side_effect = [mock_status]
 
     @patch("subprocess.run")
     def test_login_failure(self, mock_run):
-        """Test login failure scenario"""
+        """Test login fail scenario"""
         mock_run.return_value = MagicMock(returncode=1, stderr="Login failed")
 
         session_key = self.manager._login(self.email, self.password)
         self.assertEqual(session_key, "")
 
     def test_validate_session_no_session(self):
-        """Test session validation with no active session"""
+        """Test session validation when there's no active session"""
         self.assertFalse(self.manager._validate_session())
 
     @patch("subprocess.run")
@@ -127,7 +126,7 @@ class TestBitwardenManager(unittest.TestCase):
         self.assertFalse(self.manager._should_sync())
 
     def test_should_sync_old(self):
-        """Test sync decision with old sync"""
+        """Test sync decision with too old sync"""
         self.manager.last_sync_time = datetime.datetime.now() - timedelta(minutes=5)
         self.assertTrue(self.manager._should_sync())
 
@@ -153,7 +152,7 @@ class TestBitwardenManager(unittest.TestCase):
     @patch("subprocess.run")
     def test_retrieve_credentials_cache(self, mock_run):
         """Test credentials retrieval with caching"""
-        # First call
+
         mock_run.return_value = MagicMock(
             returncode=0,
             stdout='{"name": "test_service", "login": {"username": "user", "password": "pass"}}',
@@ -163,10 +162,10 @@ class TestBitwardenManager(unittest.TestCase):
         result2 = self.manager._retrieve_credentials("test_service")
 
         self.assertEqual(result1, result2)
-        mock_run.assert_called_once()  # Should only be called once due to caching
+        mock_run.assert_called_once()
 
     def test_format_credentials_complete(self):
-        """Test formatting complete credentials"""
+        """Test formatting credentials"""
         raw_creds = {
             "name": "test_service",
             "login": {"username": "user", "password": "pass"},
@@ -191,7 +190,7 @@ class TestBitwardenManager(unittest.TestCase):
         self.assertEqual(result, "test_value")
 
     def test_get_secret_missing(self):
-        """Test secret retrieval with missing credential"""
+        """Test secret retrieval with non existant credential"""
         self.manager.formatted_credentials = {"service_name": "test_service"}
 
         result = self.manager.get_secret("test_service", "missing_credential")

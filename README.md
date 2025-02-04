@@ -1,7 +1,7 @@
 # Grimoirelab Enigma
 
 
-This is a module made to retrieve credentials from different secrets management systems like Bitwarden.
+This is a module made to retrieve credentials from different secrets management systems like Bitwarden. 
 
 It accesses the secrets management service, looks for the desired credential and returns it in String form. 
 

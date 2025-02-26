@@ -138,7 +138,7 @@ class SecretsManagerFactory:
         """
         Resets all manager instances.
 
-        For testing purposes.
+        For testing purposes
         """
         cls._bw_manager = None
         cls._aws_manager = None

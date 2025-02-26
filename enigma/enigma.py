@@ -19,82 +19,15 @@
 #
 
 import argparse
-import getpass
 import logging
-import os
 import sys
-from typing import Optional
 
-from .bw_manager import BitwardenManager
-from .aws_manager import AwsManager
-from .hc_manager import HashicorpManager
+from .secrets_manager_factory import SecretsManagerFactory
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 _logger = logging.getLogger(__name__)
-
-# Initialize persistent manager instances so we can utilize cache
-_bw_manager: Optional[BitwardenManager] = None
-_aws_manager: Optional[AwsManager] = None
-_hc_manager: Optional[HashicorpManager] = None
-
-
-def _initialize_bitwarden() -> BitwardenManager:
-    """
-    Initialize the Bitwarden manager with proper credentials.
-
-    Returns:
-        BitwardenManager: An initialized BitwardenManager instance
-
-    Raises:
-        ValueError: If credentials cannot be obtained
-    """
-    email = os.environ.get("BW_EMAIL")
-    password = os.environ.get("BW_PASSWORD")
-
-    if not email or not password:
-        email = input("Bitwarden email: ")
-        password = getpass.getpass("Bitwarden master password: ")
-
-        if not email or not password:
-            raise ValueError("Bitwarden credentials are required")
-
-    return BitwardenManager(email, password)
-
-
-def _initialize_hashicorp() -> HashicorpManager:
-    """
-    Initialize the Hashicorp manager with credentials.
-
-    Returns:
-        HashicorpManager: An initialized HashicorpManager instance
-
-    Raises:
-        ValueError: If required environment variables are missing
-    """
-    try:
-        vault_addr = os.environ.get("VAULT_ADDR")
-        vault_token = os.environ.get("VAULT_TOKEN")
-        vault_cacert = os.environ.get("VAULT_CACERT")
-
-        if not vault_addr:
-            vault_addr = input("Please enter vault address: ")
-        if not vault_token:
-            vault_token = input("Please enter vault token: ")
-        if not vault_cacert:
-            vault_cacert = input(
-                "Please enter path to a PEM-encoded CA certificate file: "
-            )
-
-        if not all([vault_addr, vault_token, vault_cacert]):
-            raise ValueError("All Hashicorp Vault credentials are required")
-
-        return HashicorpManager(vault_addr, vault_token, vault_cacert)
-
-    except Exception as e:
-        _logger.error("Failed to initialize Hashicorp Vault manager: %s", e)
-        raise
 
 
 def get_secret(
@@ -114,29 +47,18 @@ def get_secret(
     Raises:
         ValueError: If the secrets manager is not supported or initialization fails
     """
-    global _bw_manager, _aws_manager, _hc_manager
-
     try:
         if secrets_manager_name == "bitwarden":
-            # Initialize Bitwarden manager if not already initialized
-            if _bw_manager is None:
-                _logger.debug("Creating new Bitwarden manager instance")
-                _bw_manager = _initialize_bitwarden()
-            return _bw_manager.get_secret(service_name, credential_name)
+            manager = SecretsManagerFactory.get_bitwarden_manager()
+            return manager.get_secret(service_name, credential_name)
 
         elif secrets_manager_name == "hashicorp":
-            # Initialize Hashicorp manager if not already initialized
-            if _hc_manager is None:
-                _logger.debug("Creating new Hashicorp manager instance")
-                _hc_manager = _initialize_hashicorp()
-            return _hc_manager.get_secret(service_name, credential_name)
+            manager = SecretsManagerFactory.get_hashicorp_manager()
+            return manager.get_secret(service_name, credential_name)
 
         elif secrets_manager_name == "aws":
-            # Initialize AWS manager if not already initialized
-            if _aws_manager is None:
-                _logger.debug("Creating new AWS manager instance")
-                _aws_manager = AwsManager()
-            return _aws_manager.get_secret(service_name, credential_name)
+            manager = SecretsManagerFactory.get_aws_manager()
+            return manager.get_secret(service_name, credential_name)
 
         else:
             raise ValueError(f"Unsupported secrets manager: {secrets_manager_name}")
@@ -172,4 +94,3 @@ def main():
     except Exception as e:
         _logger.error("Failed to retrieve secret: %s", e)
         sys.exit(1)
-

@@ -18,3 +18,8 @@
 # Author:
 #     Alberto Ferrer Sánchez (alberefe@gmail.com)
 #
+
+from .enigma import get_secret
+from .secrets_manager_factory import SecretsManagerFactory
+
+__all__ = ['get_secret', 'SecretsManagerFactory']

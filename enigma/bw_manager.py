@@ -268,6 +268,10 @@ class BitwardenManager:
         Returns:
             str: The secret value retrieved.
         """
+        # every 3 minutes the caché is cleared to maintain cosistency with the bitwarden vault
+        if self._should_sync():
+            self._retrieve_credentials.cache_clear()
+
         # If stored credentials are not available or belong to a different service
         if (
             not self.formatted_credentials

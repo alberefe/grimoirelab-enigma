@@ -57,13 +57,11 @@ class SecretsManagerFactory:
         if cls._bw_manager is None:
             _logger.debug("Creating new Bitwarden manager")
 
-            # Try to get credentials from parameters or environment
             if email is None:
                 email = os.environ.get("BW_EMAIL")
             if password is None:
                 password = os.environ.get("BW_PASSWORD")
 
-            # If still not available, prompt the user
             if not email or not password:
                 email = input("Bitwarden email: ")
                 password = getpass.getpass("Bitwarden master password: ")
@@ -97,12 +95,11 @@ class SecretsManagerFactory:
         Gets or creates a HashicorpManager instance.
 
         Args:
-            vault_addr (str, optional): Vault address. If not provided,
-                                       will try environment variables or prompt.
-            vault_token (str, optional): Vault token. If not provided,
-                                        will try environment variables or prompt.
-            vault_cacert (str, optional): Path to CA certificate. If not provided,
-                                         will try environment variables or prompt.
+            vault_addr (str, optional): Vault address.
+
+            vault_token (str, optional): Vault token.
+
+            vault_cacert (str, optional): Path to CA certificate.
 
         Returns:
             HashicorpManager: The singleton HashicorpManager instance
@@ -113,7 +110,6 @@ class SecretsManagerFactory:
         if cls._hc_manager is None:
             _logger.debug("Creating new Hashicorp manager")
 
-            # Try to get credentials from parameters or environment
             if vault_addr is None:
                 vault_addr = os.environ.get("VAULT_ADDR")
             if vault_token is None:
@@ -121,7 +117,6 @@ class SecretsManagerFactory:
             if vault_cacert is None:
                 vault_cacert = os.environ.get("VAULT_CACERT")
 
-            # If still not available, prompt the user
             if not vault_addr:
                 vault_addr = input("Please enter vault address: ")
             if not vault_token:
@@ -141,8 +136,9 @@ class SecretsManagerFactory:
     @classmethod
     def reset_managers(cls):
         """
-        Resets all manager instances. Primarily used for testing or when
-        credentials need to be refreshed.
+        Resets all manager instances.
+
+        For testing purposes.
         """
         cls._bw_manager = None
         cls._aws_manager = None

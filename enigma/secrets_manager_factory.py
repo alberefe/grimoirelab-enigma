@@ -89,7 +89,7 @@ class SecretsManagerFactory:
 
     @classmethod
     def get_hashicorp_manager(
-        cls, vault_addr=None, vault_token=None, vault_cacert=None
+        cls, vault_addr=None, token=None, certificate=None
     ):
         """
         Gets or creates a HashicorpManager instance.
@@ -97,9 +97,9 @@ class SecretsManagerFactory:
         Args:
             vault_addr (str, optional): Vault address.
 
-            vault_token (str, optional): Vault token.
+            token (str, optional): Vault token.
 
-            vault_cacert (str, optional): Path to CA certificate.
+            certificate (str, optional): Path to CA certificate.
 
         Returns:
             HashicorpManager: The singleton HashicorpManager instance
@@ -112,24 +112,24 @@ class SecretsManagerFactory:
 
             if vault_addr is None:
                 vault_addr = os.environ.get("VAULT_ADDR")
-            if vault_token is None:
-                vault_token = os.environ.get("VAULT_TOKEN")
-            if vault_cacert is None:
-                vault_cacert = os.environ.get("VAULT_CACERT")
+            if token is None:
+                token = os.environ.get("VAULT_TOKEN")
+            if certificate is None:
+                certificate = os.environ.get("VAULT_CACERT")
 
             if not vault_addr:
                 vault_addr = input("Please enter vault address: ")
-            if not vault_token:
-                vault_token = input("Please enter vault token: ")
-            if not vault_cacert:
-                vault_cacert = input(
+            if not token:
+                token = input("Please enter vault token: ")
+            if not certificate:
+                certificate = input(
                     "Please enter path to a PEM-encoded CA certificate file: "
                 )
 
-            if not all([vault_addr, vault_token, vault_cacert]):
+            if not all([vault_addr, token, certificate]):
                 raise ValueError("All Hashicorp Vault credentials are required")
 
-            cls._hc_manager = HashicorpManager(vault_addr, vault_token, vault_cacert)
+            cls._hc_manager = HashicorpManager(vault_addr, token, certificate)
 
         return cls._hc_manager
 

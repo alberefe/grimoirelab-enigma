@@ -53,9 +53,9 @@ class SecretsManagerFactory:
         _logger.debug("Creating new Bitwarden manager")
 
         if email is None:
-            email = os.environ.get("BW_EMAIL")
+            email = os.environ.get("GRIMOIRELAB_ENIGMA_BW_EMAIL")
         if password is None:
-            password = os.environ.get("BW_PASSWORD")
+            password = os.environ.get("GRIMOIRELAB_ENIGMA_BW_PASSWORD")
 
         if not email or not password:
             email = input("Bitwarden email: ")
@@ -102,11 +102,11 @@ class SecretsManagerFactory:
         _logger.debug("Creating new Hashicorp manager")
 
         if vault_addr is None:
-            vault_addr = os.environ.get("VAULT_ADDR")
+            vault_addr = os.environ.get("GRIMOIRELAB_ENIGMA_VAULT_ADDR")
         if token is None:
-            token = os.environ.get("VAULT_TOKEN")
+            token = os.environ.get("GRIMOIRELAB_ENIGMA_VAULT_TOKEN")
         if certificate is None:
-            certificate = os.environ.get("VAULT_CACERT")
+            certificate = os.environ.get("GRIMOIRELAB_ENIGMA_VAULT_CACERT")
 
         if not vault_addr:
             vault_addr = input("Please enter vault address: ")

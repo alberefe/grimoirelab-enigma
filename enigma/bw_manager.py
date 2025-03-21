@@ -23,7 +23,6 @@ import json
 import subprocess
 import logging
 from datetime import datetime, timedelta
-from functools import lru_cache
 
 logging.basicConfig(
     level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -189,11 +188,9 @@ class BitwardenManager:
         except subprocess.CalledProcessError as e:
             _logger.error("Sync failed: %s", e)
 
-    @lru_cache(maxsize=32)
     def _retrieve_credentials(self, service_name: str) -> dict:
         """
         Retrieves a secret from a particular service from the Bitwarden vault.
-        This function is cached using LRU cache with a maximum size of 32 entries.
 
         Args:
             service_name (str): The name of the data source for which to retrieve the secret.
@@ -225,7 +222,7 @@ class BitwardenManager:
                 return {}
 
             retrieved_secrets = json.loads(result.stdout)
-            _logger.info("Secrets successfully retrieved and cached")
+            _logger.info("Secrets successfully retrieved")
             return retrieved_secrets
 
         except Exception as e:
@@ -268,9 +265,6 @@ class BitwardenManager:
         Returns:
             str: The secret value retrieved.
         """
-        # every 3 minutes the caché is cleared to maintain cosistency with the bitwarden vault
-        if self._should_sync():
-            self._retrieve_credentials.cache_clear()
 
         # If stored credentials are not available or belong to a different service
         if (
